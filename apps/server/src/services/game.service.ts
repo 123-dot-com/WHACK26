@@ -1,7 +1,7 @@
 import { prisma } from "../lib/prisma.ts";
 import { createAccessToken, hashToken } from "../lib/token.ts"
 import { toGameState } from "./game-state.mapper.ts";
-
+import { dailyNews } from "../data/news.ts";
 export async function createGame() {
     const accessToken = createAccessToken();
     const stocks = await prisma.stock.findMany({
@@ -71,9 +71,36 @@ export async function getGame(gameId: string) {
             prices: true,
         },
     });
-    if (!game){
+    if (!game) {
         return null;
     }
     return toGameState(game);
+}
+
+export async function getNews(gameId: string) {
+  const game = await prisma.gameSession.findUnique({
+    where: {
+      id: gameId,
+    },
+    select: {
+      day: true,
+      version: true,
+    },
+  });
+
+  if (!game) {
+    return null;
+  }
+
+  const news = dailyNews.find((item) => item.day === game.day);
+
+  if (!news) {
+    throw new Error("News scenario is missing.");
+  }
+
+  return {
+    news,
+    version: game.version,
+  };
 }
 

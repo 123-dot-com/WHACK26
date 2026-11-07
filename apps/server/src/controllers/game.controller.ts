@@ -1,5 +1,5 @@
 import type { Request, Response } from "express";
-import { createGame, getGame} from "../services/game.service.ts";
+import { createGame, getGame, getNews} from "../services/game.service.ts";
 
 export async function createGameController(
     _req: Request,
@@ -38,5 +38,29 @@ export async function getGameController(
     success: true,
     data: game,
     stateVersion: game.version,
+  });
+}
+
+export async function getNewsController(
+  req: Request<{ gameId: string }>,
+  res: Response,
+) {
+  const result = await getNews(req.params.gameId);
+
+  if (!result) {
+    res.status(404).json({
+      success: false,
+      error: {
+        code: "NOT_FOUND",
+        message: "Game not found.",
+      },
+    });
+    return;
+  }
+
+  res.json({
+    success: true,
+    data: result.news,
+    stateVersion: result.version,
   });
 }
