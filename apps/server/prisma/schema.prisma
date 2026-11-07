@@ -31,6 +31,8 @@ model GameSession {
   lastSimulatedDay Int       @default(0)
   wallet           Wallet?
   access           GameAccess?
+  holdings         Holding[]
+  prices           StockPrice[]
 }
 
 model Wallet {
@@ -47,10 +49,34 @@ model Stock {
   sector            StockSector
   volatility        Float
   initialPricePence Int
+  holdings          Holding[]
+  prices            StockPrice[]
 }
 
 model GameAccess {
   gameId String @id
   code   String @unique
   game   GameSession @relation(fields: [gameId], references: [id], onDelete: Cascade)
+}
+
+model Holding{
+  gameID String 
+  stockID String
+  quantity Int @default(0)
+  game GameSession @relation(fields: [gameID], references: [id], onDelete: Cascade)
+  stock Stock @relation(fields: [stockID], references: [id])
+
+  @@id([gameID, stockID])
+}
+
+model StockPrice {
+  gameID String
+  stockID String
+  day Int
+  pricePence Int
+
+  game GameSession @relation(fields: [gameID], references: [id], onDelete: Cascade)
+  stock Stock @relation(fields: [stockID], references: [id])
+
+  @@id([gameID, stockID, day])
 }
