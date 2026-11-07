@@ -30,6 +30,7 @@ model GameSession {
   version          Int       @default(0)
   lastSimulatedDay Int       @default(0)
   wallet           Wallet?
+  access           GameAccess?
 }
 
 model Wallet {
@@ -46,4 +47,10 @@ model Stock {
   sector            StockSector
   volatility        Float
   initialPricePence Int
+}
+
+model GameAccess {
+  gameId String @id
+  code   String @unique
+  game   GameSession @relation(fields: [gameId], references: [id], onDelete: Cascade)
 }

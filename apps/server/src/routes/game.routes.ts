@@ -1,5 +1,11 @@
 import {Router} from "express";
-import {createGameController} from "../controllers/game.controller.ts";
+import {createGameController, getGameController} from "../controllers/game.controller.ts";
+import {requireGameAccess} from "../middleware/game-access.ts";
 
 export const gameRouter= Router();
 gameRouter.post("/",createGameController);
+gameRouter.get(
+  "/:gameId",
+  requireGameAccess,
+  getGameController,
+);
