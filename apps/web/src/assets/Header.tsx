@@ -1,5 +1,3 @@
-import React from 'react';
-import ReactDOM from 'react-dom';
 import './header.css'
 
 function Header() {
@@ -7,7 +5,7 @@ function Header() {
         <header className="header">
         <div className="logo"> <a href="./Home">BULLISH!</a></div>
         <nav>
-        <a href="./accessibility">Accessibility</a>
+        <a href="./Accessibility">Accessibility</a>
         </nav>
         </header>
     );
