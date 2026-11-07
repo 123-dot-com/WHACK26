@@ -2,9 +2,10 @@
 a {
     color: white;
     text-decoration: none;
+    padding: 15px, 40px;
 }
 
-.header {
+header {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -34,4 +35,8 @@ a {
 
 a:hover {
     text-decoration: underline;
+}
+
+.links {
+    word-spacing: 20px;
 }
