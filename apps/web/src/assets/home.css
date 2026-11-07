@@ -1,0 +1,89 @@
+h1 {
+    color: #118C4F;
+    font-size: 9rem;
+    margin-top: 200px;
+    text-align: center;
+}
+
+h2 {
+    margin-top: 100px;
+    text-align: center;
+}
+
+.link {
+    color: #118C4F;
+    transition: color 1s cubic-bezier(0.32, 0, 0.67, 0);
+    font-size: 30px;
+}
+
+.link:hover {
+    color: #111;
+    transition: color 1s cubic-bezier(0.33, 1, 0.68, 1);
+}
+
+.link::before {
+    content: "";
+    position: absolute;
+    z-index: -2;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    right: 0;
+    clip-path: polygon(
+        0% -20%,
+        100% -30%,
+        100% -10%,
+        0% 0%,
+        0% 130%,
+        100% 120%,
+        100% 100%,
+        0% 110%
+    );
+    background-color:#118C4F;
+
+    transition: clip-path 1s cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.link:hover::before {
+    clip-path: polygon(
+        0% 10%,
+        100% 0%,
+        100% 20%,
+        0% 30%,
+        0% 100%,
+        100% 90%,
+        100% 70%,
+        0% 80%
+    );
+}
+
+.link::after {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    width: 5ch;
+    height: 5ch;
+    top: 50%;
+    right: 50%;
+    transform: translate(50%, -50%) rotate(0deg) scale(0);
+    transition: transform 1s ease;
+
+    background-color:#118C4F;
+}
+
+.link:hover::after {
+    transform: translate(50%, -50%) rotate(135deg) scale(1);
+}
+
+
+p {
+    margin-top: 300px;
+    font-size: 1rem;
+    text-align: left;
+}
+
+main {
+    text-align: center;
+    margin: 10px;
+    padding: 10px;
+}
