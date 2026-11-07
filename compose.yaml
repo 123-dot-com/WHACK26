@@ -1,0 +1,21 @@
+name: bullish
+
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: bullish
+      POSTGRES_PASSWORD: bullish_dev
+      POSTGRES_DB: bullish
+    ports:
+      - "127.0.0.1:15432:5432"
+    volumes:
+      - bullish_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bullish -d bullish"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+volumes:
+  bullish_pg:

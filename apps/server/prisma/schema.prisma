@@ -1,0 +1,49 @@
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "ts"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum GamePhase {
+  BRIEFING
+  TRADING
+  REPORT
+  FINISHED
+}
+
+enum StockSector {
+  TECH
+  ENERGY
+  FINANCE
+}
+
+model GameSession {
+  id               String    @id @default(uuid())
+  day              Int       @default(1)
+  phase            GamePhase @default(BRIEFING)
+  seed             Int       @default(2026)
+  version          Int       @default(0)
+  lastSimulatedDay Int       @default(0)
+  wallet           Wallet?
+}
+
+model Wallet {
+  gameId            String      @id
+  cashPence         Int         @default(1000000)
+  savingsPence      Int         @default(0)
+  annualInterestBps Int         @default(400)
+  game              GameSession @relation(fields: [gameId], references: [id], onDelete: Cascade)
+}
+
+model Stock {
+  id                String      @id
+  name              String
+  sector            StockSector
+  volatility        Float
+  initialPricePence Int
+}

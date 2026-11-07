@@ -1,0 +1,32 @@
+{
+    "name": "bullish",
+    "version": "0.0.0",
+    "private": true,
+    "workspaces": [
+        "apps/*",
+        "packages/*"
+    ],
+    "engines": {
+        "node": ">=24.11.0"
+    },
+    "scripts": {
+        "dev": "npm run build -w @bullish/shared && npm run db:generate && concurrently -k -n shared,web,server \"npm:dev:shared\" \"npm:dev:web\" \"npm:dev:server\"",
+        "dev:shared": "npm run dev -w @bullish/shared",
+        "dev:web": "npm run dev -w @bullish/web",
+        "dev:server": "npm run dev -w @bullish/server",
+        "build": "npm run build -w @bullish/shared && npm run build -w @bullish/server && npm run build -w @bullish/web",
+        "typecheck": "npm run build -w @bullish/shared && npm run db:generate && npm run typecheck --workspaces --if-present",
+        "test": "npm run test -w @bullish/shared",
+        "db:up": "docker compose up -d --wait",
+        "db:down": "docker compose down",
+        "db:generate": "npm run db:generate -w @bullish/server",
+        "db:migrate": "npm run db:migrate -w @bullish/server --",
+        "db:deploy": "npm run db:deploy -w @bullish/server",
+        "db:seed": "npm run db:seed -w @bullish/server",
+        "db:studio": "npm run db:studio -w @bullish/server"
+    },
+    "devDependencies": {
+        "concurrently": "^9.0.0",
+        "typescript": "~5.9.3"
+    }
+}
