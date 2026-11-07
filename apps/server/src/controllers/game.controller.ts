@@ -1,6 +1,6 @@
 import type { Request, Response } from "express";
-import { createGame, getGame, getNews} from "../services/game.service.ts";
-
+import { createGame, getGame, getNews, openMarket} from "../services/game.service.ts";
+import { openMarketRequestSchema } from "@bullish/shared";
 export async function createGameController(
     _req: Request,
     res: Response,
@@ -62,5 +62,23 @@ export async function getNewsController(
     success: true,
     data: result.news,
     stateVersion: result.version,
+  });
+}
+
+export async function openMarketController(
+  req: Request<{ gameId: string }>,
+  res: Response,
+) {
+  const { expectedVersion } = openMarketRequestSchema.parse(req.body);
+
+  const game = await openMarket(
+    req.params.gameId,
+    expectedVersion,
+  );
+
+  res.json({
+    success: true,
+    data: game,
+    stateVersion: game.version,
   });
 }

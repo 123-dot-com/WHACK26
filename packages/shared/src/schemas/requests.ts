@@ -15,5 +15,8 @@ export const bankTransferRequestSchema = z.strictObject({
   expectedVersion,
 });
 
+export const openMarketRequestSchema = z.strictObject({
+  expectedVersion: expectedVersion.max(2_147_483_647),
+});
 export type TradeRequest = z.infer<typeof tradeRequestSchema>;
 export type BankTransferRequest = z.infer<typeof bankTransferRequestSchema>;

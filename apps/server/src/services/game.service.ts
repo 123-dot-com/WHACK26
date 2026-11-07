@@ -2,6 +2,7 @@ import { prisma } from "../lib/prisma.ts";
 import { createAccessToken, hashToken } from "../lib/token.ts"
 import { toGameState } from "./game-state.mapper.ts";
 import { dailyNews } from "../data/news.ts";
+import { AppError } from "../lib/app-error.ts";
 export async function createGame() {
     const accessToken = createAccessToken();
     const stocks = await prisma.stock.findMany({
@@ -102,5 +103,66 @@ export async function getNews(gameId: string) {
     news,
     version: game.version,
   };
+}
+
+export async function openMarket(
+  gameId: string,
+  expectedVersion: number,
+) {
+  return prisma.$transaction(async (tx) => {
+    const updated = await tx.gameSession.updateMany({
+      where: {
+        id: gameId,
+        version: expectedVersion,
+        phase: "BRIEFING",
+      },
+      data: {
+        phase: "TRADING",
+        version: {
+          increment: 1,
+        },
+      },
+    });
+
+    if (updated.count === 0) {
+      const current = await tx.gameSession.findUnique({
+        where: { id: gameId },
+        select: { version: true },
+      });
+
+      if (!current) {
+        throw new AppError(404, "NOT_FOUND", "Game not found.");
+      }
+
+      if (current.version !== expectedVersion) {
+        throw new AppError(
+          409,
+          "VERSION_CONFLICT",
+          "Reload the game and try again.",
+        );
+      }
+
+      throw new AppError(
+        409,
+        "INVALID_PHASE",
+        "The market can only open during BRIEFING.",
+      );
+    }
+
+    const game = await tx.gameSession.findUniqueOrThrow({
+      where: { id: gameId },
+      include: {
+        wallet: true,
+        holdings: {
+          include: {
+            stock: true,
+          },
+        },
+        prices: true,
+      },
+    });
+
+    return toGameState(game);
+  });
 }
 
