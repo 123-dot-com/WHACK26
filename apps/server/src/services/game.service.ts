@@ -1,5 +1,7 @@
 import { prisma } from "../lib/prisma.ts";
 import { createAccessToken, hashToken } from "../lib/token.ts"
+import { toGameState } from "./game-state.mapper.ts";
+
 export async function createGame() {
     const accessToken = createAccessToken();
     const stocks = await prisma.stock.findMany({
@@ -39,12 +41,19 @@ export async function createGame() {
         },
         include: {
             wallet: true,
-            holdings: true,
+            holdings: {
+                include: {
+                    stock: true,
+                },
+            },
             prices: true,
         },
     });
 
-    return { game, accessToken };
+    return {
+        game: toGameState(game),
+        accessToken,
+    };
 }
 
 export async function getGame(gameId: string) {
@@ -54,10 +63,17 @@ export async function getGame(gameId: string) {
         },
         include: {
             wallet: true,
-            holdings: true,
+            holdings: {
+                include: {
+                    stock: true,
+                },
+            },
             prices: true,
         },
     });
-    return game;
+    if (!game){
+        return null;
+    }
+    return toGameState(game);
 }
 
