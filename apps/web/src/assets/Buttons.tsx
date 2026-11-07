@@ -1,8 +1,8 @@
-import {Routes, Route, useNavigate} from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
-function BriefButton() {
+export default function BriefButton() {
     const navigate = useNavigate();
     return (
-        <button onClick={navigate('./Briefing')}> [ The Brief ] </button>
+        <button onClick={() => navigate('./Briefing')}> [ The Brief ] </button>
     );
 }

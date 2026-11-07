@@ -1,5 +1,5 @@
 import Header from './assets/Header'
-import Home from './Pages/Home'
+import Home from './pages/Home'
 
 function App() {
     return (

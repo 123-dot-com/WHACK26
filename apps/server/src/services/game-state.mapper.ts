@@ -1,12 +1,15 @@
 import type { GameStateDTO, StockId } from "@bullish/shared";
 import type { Prisma } from "../generated/prisma/client.ts";
 
+export const gameStateInclude = {
+    wallet: true,
+    holdings: { include: { stock: true } },
+    prices: true,
+    predictions: true,
+} as const;
+
 type GameData = Prisma.GameSessionGetPayload<{
-    include: {
-        wallet: true;
-        holdings: { include: { stock: true } };
-        prices: true;
-    };
+    include: typeof gameStateInclude;
 }>;
 
 export function toGameState(game: GameData): GameStateDTO {
@@ -40,7 +43,18 @@ export function toGameState(game: GameData): GameStateDTO {
         };
     });
 
-    let netWorthPence = wallet.cashPence +wallet.savingsPence;
+    const savedPrediction = game.predictions.find((p) => p.day === game.day);
+    let prediction: GameStateDTO["prediction"] = null;
+
+    if (savedPrediction) {
+        const stockId = stockIds.find((id) => id === savedPrediction.stockId);
+        if (!stockId) {
+            throw new Error("Prediction stock is invalid.");
+        }
+        prediction = { stockId, direction: savedPrediction.direction };
+    }
+
+    let netWorthPence = wallet.cashPence + wallet.savingsPence;
 
     for (const stock of stocks) {
         netWorthPence += stock.quantityHeld * stock.pricePence;
@@ -57,7 +71,7 @@ export function toGameState(game: GameData): GameStateDTO {
             annualInterestBps: wallet.annualInterestBps,
         },
         stocks,
-        prediction:null,
+        prediction,
         arbitrage: {completedToday:false},
         netWorthPence,
     };

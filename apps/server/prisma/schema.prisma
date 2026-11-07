@@ -22,6 +22,12 @@ enum StockSector {
   FINANCE
 }
 
+enum PredictionDirection {
+  BULLISH
+  NEUTRAL
+  BEARISH
+}
+
 model GameSession {
   id               String    @id @default(uuid())
   day              Int       @default(1)
@@ -33,6 +39,7 @@ model GameSession {
   access           GameAccess?
   holdings         Holding[]
   prices           StockPrice[]
+  predictions Prediction[]
 }
 
 model Wallet {
@@ -51,6 +58,7 @@ model Stock {
   initialPricePence Int
   holdings          Holding[]
   prices            StockPrice[]
+  predictions Prediction[]
 }
 
 model GameAccess {
@@ -79,4 +87,15 @@ model StockPrice {
   stock Stock @relation(fields: [stockID], references: [id])
 
   @@id([gameID, stockID, day])
+}
+
+model Prediction {
+  gameId    String
+  day       Int
+  stockId   String
+  direction PredictionDirection
+  game      GameSession @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  stock     Stock       @relation(fields: [stockId], references: [id])
+
+  @@id([gameId, day])
 }

@@ -18,5 +18,14 @@ export const bankTransferRequestSchema = z.strictObject({
 export const openMarketRequestSchema = z.strictObject({
   expectedVersion: expectedVersion.max(2_147_483_647),
 });
+export const predictionRequestSchema = z.strictObject({
+  direction: z.enum(["BULLISH", "NEUTRAL", "BEARISH"]),
+  expectedVersion: expectedVersion.max(2_147_483_647),
+});
+
+export type PredictionRequest = z.infer<
+  typeof predictionRequestSchema
+>;
+
 export type TradeRequest = z.infer<typeof tradeRequestSchema>;
 export type BankTransferRequest = z.infer<typeof bankTransferRequestSchema>;

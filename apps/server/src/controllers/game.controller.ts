@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
-import { createGame, getGame, getNews, openMarket} from "../services/game.service.ts";
-import { openMarketRequestSchema } from "@bullish/shared";
+import { createGame, getGame, getNews, openMarket } from "../services/game.service.ts";
+import { savePrediction } from "../services/prediction.service.ts";
+import { openMarketRequestSchema, predictionRequestSchema } from "@bullish/shared";
 export async function createGameController(
     _req: Request,
     res: Response,
@@ -75,6 +76,20 @@ export async function openMarketController(
     req.params.gameId,
     expectedVersion,
   );
+
+  res.json({
+    success: true,
+    data: game,
+    stateVersion: game.version,
+  });
+}
+
+export async function savePredictionController(
+  req: Request<{ gameId: string }>,
+  res: Response,
+) {
+  const input = predictionRequestSchema.parse(req.body);
+  const game = await savePrediction(req.params.gameId, input);
 
   res.json({
     success: true,

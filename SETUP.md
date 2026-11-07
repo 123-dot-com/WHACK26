@@ -2,7 +2,8 @@
 
 This repository implements the initial architecture in README_EN.md: React/Vite,
 Express, a shared TypeScript package, and PostgreSQL through Prisma 7.
-Gameplay endpoints and screens are still to be implemented.
+The backend supports game creation, session tokens, state, daily news, opening the
+market, and daily predictions. Gameplay screens and financial actions are next.
 
 Use Node 24.11+ (Node 24 LTS is a suitable baseline) and Docker Desktop with Linux
 containers. Run the following commands from the repository root. On Windows,
@@ -48,8 +49,11 @@ npm.cmd test
 npm.cmd run build
 ```
 
-The initial tests check financial request boundaries, including fractional shares,
-fractional pence, unsafe integers, and client-supplied trade prices.
+Tests cover request validation and the Prediction API, including authorization,
+phase restrictions, persistence, rollback, and concurrent version checks.
+PostgreSQL must be running for the server tests. Each run creates a uniquely named
+temporary database, applies migrations, and removes that database afterward. The
+local Docker role has the database creation privileges needed by this test setup.
 
 If dependency installation fails with `Class extends value undefined`, the local
 Node/npm installation contains incompatible npm internals. Reinstall the selected
@@ -95,9 +99,12 @@ The initial migration creates GameSession, Wallet, and the Stock catalog, includ
 checks for valid days, nonnegative balances, and positive initial prices. The
 repeatable seed upserts NOVA, GREEN, and FINX without resetting saved games.
 
+Later migrations add session access, Holdings, StockPrice, and Prediction. Restore
+an applied migration to its original contents if it was changed accidentally; put
+new SQL, including CHECK constraints, in a new migration before applying it.
+
 Add the remaining README section 6 models as their features are implemented:
-Holding, StockPrice, Trade, BankTransaction, Prediction, ArbitrageAttempt,
-DailyReport, IdempotencyRecord, and session access-token storage.
+Trade, BankTransaction, ArbitrageAttempt, DailyReport, and IdempotencyRecord.
 
 After changing `apps/server/prisma/schema.prisma`:
 
@@ -110,7 +117,32 @@ Commit migration files and the root package-lock.json. Generated clients, build
 outputs, dependencies, and local environment files are ignored.
 Use `npm.cmd run db:deploy` to apply existing migrations during deployment.
 
-Build features in this order: authorized Create Game/Read State, Briefing and
-Prediction, Trading, End Day and Reports, Bank and Arbitrage, then three-day
-progression and Reset. Add version checks, persisted idempotency, and the remaining
-database constraints before enabling financial mutation endpoints.
+## Prediction checkpoint
+
+Create a game with `POST /api/games` and retain `data.gameId` and
+`data.accessToken`. Send the token as `Authorization: Bearer <token>` on session
+requests. Get the current version from `GET /api/games/:gameId`.
+
+Send `POST /api/games/:gameId/prediction` with JSON:
+
+```json
+{
+  "direction": "BULLISH",
+  "expectedVersion": 0
+}
+```
+
+This example uses a fresh game at version 0. The server chooses the focus stock
+from that day's news and returns the updated GameStateDTO with version 1. Choices
+are BULLISH, NEUTRAL, and BEARISH. A prediction can be changed during BRIEFING or
+TRADING, with one saved record per game/day. Every successful save increments the
+version; GET game returns the current day's saved choice. Predictions leave cash,
+savings, holdings, and net worth unchanged.
+
+Missing tokens return 401; wrong or another game's token returns 403. Invalid JSON
+input returns 400; stale versions and closed phases return 409. Use the latest
+version for each request, including `POST /api/games/:gameId/open-market`.
+
+Next features are Trading, End Day and Reports, Bank and Arbitrage, then three-day
+progression and Reset. Persist idempotency keys and add the remaining database
+constraints before enabling financial mutation endpoints.

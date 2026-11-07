@@ -28,15 +28,3 @@ ALTER TABLE "StockPrice" ADD CONSTRAINT "StockPrice_gameID_fkey" FOREIGN KEY ("g
 
 -- AddForeignKey
 ALTER TABLE "StockPrice" ADD CONSTRAINT "StockPrice_stockID_fkey" FOREIGN KEY ("stockID") REFERENCES "Stock"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
-ALTER TABLE "Holding"
-ADD CONSTRAINT "Holding_quantity_check"
-CHECK ("quantity" >= 0);
-
-ALTER TABLE "StockPrice"
-ADD CONSTRAINT "StockPrice_pricePence_check"
-CHECK ("pricePence" >= 1);
-
-ALTER TABLE "StockPrice"
-ADD CONSTRAINT "StockPrice_day_check"
-CHECK ("day" BETWEEN 0 AND 3);

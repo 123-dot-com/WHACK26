@@ -1,6 +1,6 @@
 import { prisma } from "../lib/prisma.ts";
 import { createAccessToken, hashToken } from "../lib/token.ts"
-import { toGameState } from "./game-state.mapper.ts";
+import { gameStateInclude, toGameState } from "./game-state.mapper.ts";
 import { dailyNews } from "../data/news.ts";
 import { AppError } from "../lib/app-error.ts";
 export async function createGame() {
@@ -40,15 +40,7 @@ export async function createGame() {
                 })),
             },
         },
-        include: {
-            wallet: true,
-            holdings: {
-                include: {
-                    stock: true,
-                },
-            },
-            prices: true,
-        },
+        include: gameStateInclude,
     });
 
     return {
@@ -58,24 +50,13 @@ export async function createGame() {
 }
 
 export async function getGame(gameId: string) {
-    const game = await prisma.gameSession.findUnique({
-        where: {
-            id: gameId,
-        },
-        include: {
-            wallet: true,
-            holdings: {
-                include: {
-                    stock: true,
-                },
-            },
-            prices: true,
-        },
-    });
-    if (!game) {
-        return null;
-    }
-    return toGameState(game);
+    return prisma.$transaction(async (tx) => {
+        const game = await tx.gameSession.findUnique({
+            where: { id: gameId },
+            include: gameStateInclude,
+        });
+        return game ? toGameState(game) : null;
+    }, { isolationLevel: "RepeatableRead" });
 }
 
 export async function getNews(gameId: string) {
@@ -151,15 +132,7 @@ export async function openMarket(
 
     const game = await tx.gameSession.findUniqueOrThrow({
       where: { id: gameId },
-      include: {
-        wallet: true,
-        holdings: {
-          include: {
-            stock: true,
-          },
-        },
-        prices: true,
-      },
+      include: gameStateInclude,
     });
 
     return toGameState(game);
