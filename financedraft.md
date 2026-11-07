@@ -163,10 +163,22 @@ Two accounts:
 |---|---:|---:|
 | 1 Oil | £25 | £24 |
 | 1 Sack of Oil = 3 Oil | £69 | £68 |
+| 1 Silver | £30 | £28 |
+| 1 Vein of Silver = 4 Silver | £108 | £105 |
+| 1 Platinum | £40 | £38 |
+| 1 Nugget of Platinum = 2 Platinum | £72 | £70 |
+| 1 Palladium | £45 | £44 |
+| 1 Nugget of Palladium = 2 Palladium | £84 | £82 |
 
 Possible routes:
-- **Buy 1 Sack (£69) → Sell 3 individual Oil (£72): +£3 profit.**
-- **Buy 3 individual Oil (£75) → Sell 1 Sack (£68): −£7 loss.**
+- **Buy 1 Sack of Oil (£69) → Sell 3 individual Oil (£72): +£3 profit.**
+- **Buy 3 individual Oil (£75) → Sell 1 Sack of Oil (£68): −£7 loss.**
+- **Buy 1 Vein of Silver (£108) → Sell 4 individual Silver (£112): +£4 profit.**
+- **Buy 4 individual Silver (£120) → Sell 1 Vein of Silver (£105): −£15 loss.**
+- **Buy 1 Nugget of Platinum (£72) → Sell 2 individual Platinum (£76): +£4 profit.**
+- **Buy 2 individual Platinum (£80) → Sell 1 Nugget of Platinum (£70): −£10 loss.**
+- **Buy 1 Nugget of Palladium (£84) → Sell 2 individual Palladium (£88): +£4 profit.**
+- **Buy 2 individual Palladium (£90) → Sell 1 Nugget of Palladium (£82): −£8 loss.**
 
 ```text
 cost = route == BUY_BUNDLE_SELL_UNITS
