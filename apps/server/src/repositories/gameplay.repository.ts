@@ -57,6 +57,6 @@ export async function resetGame(tx: Transaction, game: GameData) {
     gameID: game.id, stockID: stock.id, day: 0, pricePence: stock.initialPricePence,
   })) });
   await tx.wallet.update({ where: { gameId: game.id },
-    data: { cashPence: 1_000_000, savingsPence: 0, annualInterestBps: 400 } });
+    data: { cashPence: 1_000_000, savingsPence: 0, monthlyInterestBps: 200, savingsDepositLimitPence: 500_000 } });
   await tx.gameSession.update({ where: { id: game.id }, data: { day: 1, phase: "BRIEFING", lastSimulatedDay: 0 } });
 }

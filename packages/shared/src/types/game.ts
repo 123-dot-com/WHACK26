@@ -10,7 +10,8 @@ export interface GameStateDTO {
   wallet: {
     cashPence: number;
     savingsPence: number;
-    annualInterestBps: number;
+    monthlyInterestBps: number;
+    savingsDepositLimitPence: number;
   };
   stocks: Array<{
     id: StockId;

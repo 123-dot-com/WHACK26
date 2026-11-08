@@ -1,5 +1,5 @@
 export type PixelIconName = "coin" | "sun" | "newspaper" | "market" | "bank" | "bag"
-  | "star" | "portfolio" | "leaf" | "chip" | "oil" | "moon" | "flag" | "phone";
+  | "star" | "portfolio" | "leaf" | "chip" | "oil" | "moon" | "flag" | "phone" | "restart";
 
 const shapes: Record<PixelIconName, string> = {
   coin: "M6 2h8v2h2v2h2v8h-2v2h-2v2H6v-2H4v-2H2V6h2V4h2z M9 5h2v2h3v2h-4v2h4v4h-3v2H9v-2H6v-2h4v-2H6V7h3z",
@@ -16,6 +16,7 @@ const shapes: Record<PixelIconName, string> = {
   moon: "M6 2h7v2H9v2H7v7h2v2h5v-2h3v3h-3v2H6v-2H3v-3H1V6h2V4h3z",
   flag: "M3 1h2v18H3z M6 2h11v8H6z M6 13h8v2H6z",
   phone: "M5 1h10v18H5z M7 4v11h6V4z M9 16v1h2v-1z",
+  restart: "M7 2h7v2h3v3h2V3h1v8h-8V9h4V7h-2V5H7v2H5v6h2v2h6v-2h3v3h-3v2H7v-2H4v-3H2V7h2V4h3z",
 };
 
 export default function PixelIcon({ name, className = "" }: { name: PixelIconName; className?: string }) {

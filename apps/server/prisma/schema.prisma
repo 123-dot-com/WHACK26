@@ -48,11 +48,12 @@ model GameSession {
 }
 
 model Wallet {
-  gameId            String      @id
-  cashPence         Int         @default(1000000)
-  savingsPence      Int         @default(0)
-  annualInterestBps Int         @default(400)
-  game              GameSession @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  gameId                   String      @id
+  cashPence                Int         @default(1000000)
+  savingsPence             Int         @default(0)
+  monthlyInterestBps       Int         @default(200)
+  savingsDepositLimitPence Int         @default(500000)
+  game                     GameSession @relation(fields: [gameId], references: [id], onDelete: Cascade)
 }
 
 model Stock {

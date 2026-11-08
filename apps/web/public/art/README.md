@@ -10,9 +10,20 @@ The exact original/edit/final prompts are saved in `prompts.json`.
   to be divisible into integer source pixels. The React ChibiSprite component
   scales the complete atlas to four times its displayed frame size and CSS
   `steps(4)` advances one cell at a time. `paused`/`frame` select a still frame.
-- `bank-interior.png`: 1536 × 1024 bank environment. Only Bank uses a full scene.
-  The wake-up intro uses a small CSS bed/window vignette and the same character
-  atlas. Stocks, Arbitrage, News and Portfolio remain simple phone screens.
+- `bedroom.png`: 1672 × 941 full-viewport bedroom. Click the bed, then the bedside
+  phone. A foreground copy of the blanket hides the sleeping sprite's body;
+  the camera and all hotspots share the same image coordinates.
+- `bank-exterior-white.png`: 1672 × 941 white neoclassical bank entrance. The
+  player walks to the central door before entering.
+- `bank-interior-white.png`: 1536 × 1024 white marble bank. Click the teller
+  counter for deposits/withdrawals or the vault for monthly Savings terms.
+- `bank-interior.png`: retained original source for the white-bank edit.
+
+Both locations fill the viewport. The phone shows only stock-news messages;
+Stocks, Arbitrage and Portfolio use separate activity panels with persistent
+screen options. Sleeping uses the same character atlas and bedroom artwork with
+phase-driven night colors and a moonlit window. Rates, prices and balances use a
+separate local monospace font. Generated background text is never used as UI.
 
 Final character prompt (edit of the generated character atlas):
 
@@ -24,7 +35,7 @@ Final character prompt (edit of the generated character atlas):
 > Keep crisp square pixels, complete bodies, consistent scale and transparent
 > padding. No labels or grid lines.
 
-Final bank prompt:
+Original bank prompt (before the requested white classical-bank edit):
 
 > A cozy 16-bit pixel bank interior, straight-on with slight top-down perspective.
 > Warm cream walls, wooden trim and teller counter, forest-green tile floor,

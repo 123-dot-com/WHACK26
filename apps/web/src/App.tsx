@@ -1,4 +1,4 @@
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import GameProvider from "./components/GameProvider";
 import GameLayout from "./components/GameLayout";
 import StatusBanner from "./components/StatusBanner";
@@ -10,14 +10,14 @@ import Bank from "./pages/Bank";
 import Arbitrage from "./pages/Arbitrage";
 import DailyReport from "./pages/DailyReport";
 import FinalReport from "./pages/FinalReport";
-import WakeUp from "./pages/WakeUp";
 
 export default function App() {
   return <GameProvider><StatusBanner />
     <Routes>
       <Route path="/" element={<Home />} />
-      <Route path="/WakeUp" element={<WakeUp />} />
+      <Route path="/WakeUp" element={<Navigate to="/Room" replace />} />
       <Route element={<GameLayout />}>
+        <Route path="/Room" element={null} />
         <Route path="/Briefing" element={<Briefing />} />
         <Route path="/Market" element={<Market />} />
         <Route path="/Portfolio" element={<Portfolio />} />

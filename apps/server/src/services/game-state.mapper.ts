@@ -57,7 +57,8 @@ export function toGameState(game: GameData): GameStateDTO {
         wallet:{
             cashPence: wallet.cashPence,
             savingsPence: wallet.savingsPence,
-            annualInterestBps: wallet.annualInterestBps,
+            monthlyInterestBps: wallet.monthlyInterestBps,
+            savingsDepositLimitPence: wallet.savingsDepositLimitPence,
         },
         stocks,
         prediction,

@@ -1,7 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { Navigate } from "react-router-dom";
 import { getPuzzle } from "../api/client";
-import EndDayButton from "../components/EndDayButton";
 import { useGame } from "../hooks/game-context";
 import { useGameResource } from "../hooks/use-game-resource";
 import { gamePath, money, signedMoney } from "../lib/format";
@@ -37,5 +36,5 @@ export default function Arbitrage() {
             <div><dt>Profit / loss</dt><dd className={revenue >= cost ? "positive" : "negative"}>{valid ? signedMoney(revenue - cost) : "—"}</dd></div></dl>
           <p className="muted">You need Current Cash to cover the full purchase cost. This settles immediately and uses today's only attempt.</p>
           <button className="primary" disabled={busy || !valid || cost > game.wallet.cashPence}>Execute this route</button></form>}
-    </>}<EndDayButton /></>;
+    </>}</>;
 }

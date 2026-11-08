@@ -8,7 +8,8 @@ export function transferMoney(gameId: string, input: BankTransferRequest, key: s
   return mutateGame({ gameId, key, operation, input, phases: ["TRADING"],
     apply: async (tx, game) => {
       if (!game.wallet) throw new Error("Game wallet is missing.");
-      const balances = calculateTransfer(game.wallet.cashPence, game.wallet.savingsPence, input.amountPence, operation);
+      const balances = calculateTransfer(game.wallet.cashPence, game.wallet.savingsPence, input.amountPence, operation,
+        game.wallet.savingsDepositLimitPence);
       await persistTransfer(tx, game, operation, input.amountPence, balances);
     },
   });

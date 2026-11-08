@@ -129,7 +129,8 @@ describe("financial APIs with real PostgreSQL", () => {
     expect(result.arbitrage.completedToday).toBe(true);
     expect(await g.send("arbitrage/execute", payload)).toMatchObject({ status: 409, body: { error: { code: "ARBITRAGE_ALREADY_COMPLETED" } } });
     const poor = await game();
-    state(await poor.send("bank/deposit", { amountPence: 993_101 }));
+    state(await poor.send("trades", { ...buy, quantity: 99 }));
+    state(await poor.send("trades", { stockId: "GREEN", side: "BUY", quantity: 1 }));
     expect(await poor.send("arbitrage/execute", payload)).toMatchObject({ status: 422, body: { error: { code: "INSUFFICIENT_CASH" } } });
   });
   it("rolls back cash, holdings, version and the request record when a trade write fails", async () => {
@@ -149,6 +150,38 @@ describe("financial APIs with real PostgreSQL", () => {
 });
 
 describe("three-day progression and reports", () => {
+  it("persists monthly terms, rejects over-limit deposits and compounds above the cap", async () => {
+    const g = await game();
+    expect(g.current().wallet).toMatchObject({ monthlyInterestBps: 200, savingsDepositLimitPence: 500_000 });
+    expect(g.current().wallet).not.toHaveProperty("annualInterestBps");
+    state(await g.send("bank/deposit", { amountPence: 500_000 }));
+    const full = await g.load();
+    expect(await g.send("bank/deposit", { amountPence: 1 })).toMatchObject({ status: 422, body: { error: { code: "SAVINGS_LIMIT_EXCEEDED" } } });
+    expect(await g.load()).toEqual(full);
+    state(await g.send("prediction", { direction: "BULLISH" }));
+    const closed = state(await g.send("end-day"));
+    expect(closed.wallet.savingsPence).toBe(510_000);
+    expect(closed.reports[0].interestPence).toBe(10_000);
+    state(await g.send("next-day")); state(await g.send("open-market"));
+    expect(await g.send("bank/deposit", { amountPence: 1 })).toMatchObject({ status: 422 });
+    state(await g.send("prediction", { direction: "BULLISH" }));
+    const compounded = state(await g.send("end-day"));
+    expect(compounded.wallet.savingsPence).toBe(520_200);
+    expect(compounded.reports[1].interestPence).toBe(10_200);
+    state(await g.send("reset"));
+    expect(g.current().wallet).toMatchObject({ monthlyInterestBps: 200, savingsDepositLimitPence: 500_000, savingsPence: 0 });
+  });
+  it("serializes competing deposits at the cap without exceeding the limit", async () => {
+    const g = await game();
+    state(await g.send("bank/deposit", { amountPence: 400_000 }));
+    const payload = { amountPence: 100_000, expectedVersion: g.current().version };
+    const results = await Promise.all([request(`/${g.id}/bank/deposit`, payload, g.token, randomUUID()), request(`/${g.id}/bank/deposit`, payload, g.token, randomUUID())]);
+    expect(results.map((item) => item.status).sort()).toEqual([200, 409]);
+    const loaded = await g.load();
+    expect(loaded.wallet.savingsPence).toBe(500_000);
+    expect(await request(`/${g.id}/bank/deposit`, { amountPence: 1, expectedVersion: loaded.version }, g.token, randomUUID()))
+      .toMatchObject({ status: 422, body: { error: { code: "SAVINGS_LIMIT_EXCEEDED" } } });
+  });
   it("rolls back prices, interest and phase when report persistence fails", async () => {
     const g = await game();
     state(await g.send("bank/deposit", { amountPence: 200_000 }));
@@ -187,10 +220,10 @@ describe("three-day progression and reports", () => {
     const closed = state(result);
     const report = closed.reports[0];
     expect(closed.phase).toBe("REPORT");
-    expect(report.interestPence).toBe(667);
+    expect(report.interestPence).toBe(4000);
     expect(report.arbitragePnlPence).toBe(300);
-    expect(closed.wallet.savingsPence).toBe(200_667);
-    expect(closed.netWorthPence).toBe(1_000_000 + report.marketPnlPence + 667 + 300);
+    expect(closed.wallet.savingsPence).toBe(204_000);
+    expect(closed.netWorthPence).toBe(1_000_000 + report.marketPnlPence + 4000 + 300);
     expect(report.netWorthPence).toBe(closed.netWorthPence);
     expect(report.marketPnlPence).toBe(20 * (report.marketResults.find((r) => r.stockId === "NOVA")!.nextPricePence - 10_000));
     expect(await request(`/${g.id}/end-day`, payload, g.token, key)).toEqual(result);

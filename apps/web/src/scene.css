@@ -1,0 +1,168 @@
+@font-face { font-family: "Numbers"; src: url("/fonts/roboto-mono.ttf") format("truetype"); font-weight: 100 700; font-display: swap; }
+html, body, #root { width: 100%; min-height: 100%; margin: 0; }
+body { background: #203b31; }
+.numeric, dd, input, .stock-price, .trade-preview strong, .bank-accounts strong, .hud-balances dd, .preview dd, td { font-family: "Numbers", ui-monospace, monospace; font-variant-numeric: tabular-nums; font-feature-settings: "tnum", "zero"; letter-spacing: -.04em; }
+.game-viewport { position: relative; width: 100%; height: 100dvh; overflow: hidden; background: #254638; isolation: isolate; }
+.scene-stage { position: absolute; inset: 0; overflow: hidden; }
+.scene-canvas { position: absolute; top: 0; left: 0; transform-origin: 0 0; transition: transform 650ms ease; }
+.scene-art { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+.game-hud { position: absolute; z-index: 5; top: 16px; left: 18px; right: 18px; display: flex; align-items: center; gap: 22px; padding: 9px 16px; background: #163d30f5; border: 3px solid #b8a16b; color: #fff6db; box-shadow: 0 5px #182c2680; }
+.hud-location { display: flex; flex-direction: column; gap: 3px; white-space: nowrap; }
+.hud-brand { font: 1rem "Silkscreen", monospace; color: #ead69b; text-decoration: none; }
+.hud-location > span { font-size: .65rem; color: #c9d1b7; }
+.hud-balances { display: flex; flex: 1; justify-content: center; gap: 32px; margin: 0; }
+.hud-balances dt { color: #c9d1b7; font-size: .7rem; }
+.hud-balances dt .pixel-icon { width: 13px; height: 13px; color: #dbc77f; }
+.hud-balances dd { color: #fff9e8; font-size: 1rem; font-weight: 600; }
+.hud-controls { display: flex; align-items: center; gap: 13px; }
+.hud-controls button { color: #f4e7b7; border-color: #9b9e73; background: #254b3b; box-shadow: none; padding: 6px 9px; font-size: .75rem; }
+.hud-restart { flex-direction: column; gap: 1px; }
+.hud-restart .pixel-icon { width: 24px; height: 24px; }
+.hud-fullscreen { font: 25px system-ui !important; }
+.hud-profile { display: flex; flex-direction: column; align-items: center; text-decoration: none; color: #ead69b; }
+.hud-profile .chibi-sprite { border: 2px solid #c8b77f; background: #d8cca4; }
+.hud-profile > span:last-child { font: .4rem "Silkscreen", monospace; margin-top: 4px; }
+.fullscreen-feedback { position: absolute; top: 100%; right: 0; max-width: 300px; font-size: .75rem; }
+.scene-caption { position: absolute; bottom: 24px; left: 24px; z-index: 4; width: min(510px, calc(100% - 48px)); background: #173b30f5; border: 3px solid #b8a16b; box-shadow: 5px 5px #142b2480; padding: 17px 22px; color: #fff5da; }
+.scene-caption .eyebrow { color: #d9c98e; font-size: .45rem; }
+.scene-caption h1 { font-size: 1.05rem; letter-spacing: -.5px; margin: 6px 0 7px; line-height: 1.5; }
+.scene-caption p { font-size: .85rem; color: #e0e4ce; margin: 0; }
+.scene-caption button { margin-top: 10px; }
+.scene-loading { display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 16px; color: #fff4d6; }
+.scene-loading a { color: #e5cc84; }
+.scene-hotspot { position: absolute; padding: 0; border: 3px dashed transparent; background: transparent; box-shadow: none; z-index: 4; min-width: 46px; min-height: 46px; }
+.scene-hotspot:hover, .scene-hotspot:focus-visible { background: #fff3ab16; border-color: #fff1a1bb; transform: none; box-shadow: 0 0 0 4px #82682a33; }
+.scene-hotspot > span { position: absolute; left: 50%; top: -42px; transform: translateX(-50%); padding: 7px 13px; background: #fff8df; border: 3px solid #5d503b; color: #214d38; box-shadow: 3px 3px #43352455; white-space: nowrap; font-size: 17px; }
+.scene-hotspot .pixel-icon { width: 19px; height: 19px; }
+.room-character { position: absolute; z-index: 2; transition: left 700ms steps(8), top 700ms steps(8); }
+.room-character--sleep { left: 31%; top: 34.5%; transform: rotate(-90deg); }
+.room-character--awake { left: 48%; top: 58%; }
+.room-blanket { position: absolute; z-index: 3; left: 659px; top: 421px; width: 296px; height: 151px; background: url('/art/bedroom.png') -659px -421px / 1672px 941px no-repeat; image-rendering: pixelated; }
+.room-bed-hotspot { left: 29%; top: 44%; width: 28%; height: 22%; }
+.room-phone-hotspot { left: 59.5%; top: 42%; width: 5.5%; height: 12%; }
+.notification-dot { display: inline-block; width: 9px; height: 9px; background: #c9643e; margin-left: 5px; box-shadow: 0 0 0 3px #f2dbb4; }
+.room-sleep { position: absolute; left: 35%; top: 35%; z-index: 3; color: #24492f; font: 23px "Silkscreen", monospace; animation: sleep-float 1.5s steps(4) infinite; }
+.room-workdesk { position: absolute; left: 15%; top: 72%; width: 240px; height: 104px; background: #997043; border: 6px solid #65462f; box-shadow: inset 0 -70px #a77d50; }
+.room-workdesk::after { content: ''; position: absolute; left: -6px; right: -6px; top: 0; height: 25px; border-bottom: 5px solid #65462f; background: #bd8d56; }
+.room-laptop { position: absolute; bottom: 95%; left: 45px; width: 118px; height: 77px; border: 7px solid #263c36; background: #315d47; z-index: 1; color: #a9d794; text-align: center; font: 53px monospace; line-height: 60px; }
+.room-laptop::after { content: ''; position: absolute; bottom: -14px; left: -17px; right: -17px; height: 9px; background: #63766c; }
+.room-coffee { position: absolute; left: 184px; top: -34px; width: 28px; height: 30px; background: #f1e2bb; border: 5px solid #67523c; z-index: 1; }
+.room-coffee::after { content: ''; position: absolute; right: -14px; top: 1px; width: 10px; height: 14px; border: 4px solid #67523c; }
+.pixel-dialog { color: var(--ink); border: 4px solid var(--line); background: var(--paper); padding: 0; max-width: calc(100vw - 24px); max-height: calc(100dvh - 24px); box-shadow: 8px 9px #152e2970; }
+.pixel-dialog::backdrop { background: #102a2577; backdrop-filter: blur(2px); }
+.phone-dialog { width: min(750px, calc(100vw - 28px)); height: min(920px, calc(100dvh - 32px)); overflow: hidden; border: 9px solid #273e36; border-radius: 14px; }
+.phone-dialog[open] { display: flex; flex-direction: column; }
+.phone-status { flex-shrink: 0; height: 27px; min-height: 27px; padding: 4px 15px; background: #203d32; border: 0; color: #f3eccd; font-size: .55rem; position: relative; }
+.phone-camera { position: absolute; width: 43px; height: 9px; border-radius: 4px; background: #10261e; top: 5px; left: calc(50% - 21px); }
+.phone-status .battery-icon { border-color: #bdd2a7; background: linear-gradient(90deg, #bdd2a7 75%, transparent 75%); }
+.phone-heading { flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; padding: 10px 17px; background: #f1e8ce; border-bottom: 2px solid #c9ba94; font: .6rem "Silkscreen", monospace; }
+.phone-heading .pixel-icon { width: 17px; height: 17px; color: #647f51; }
+.close-button { border: 2px solid #a49372; box-shadow: none; padding: 0; width: 31px; height: 31px; min-width: 31px; font: 25px/1 system-ui; }
+.phone-dialog .app-dock { flex-shrink: 0; max-width: none; width: 100%; padding: 13px 12px 12px; gap: 19px; background: #e6e4cb; border-bottom: 2px solid #c5bca0; }
+.phone-dialog .app-dock a { font-size: .65rem; min-width: 48px; gap: 5px; }
+.phone-dialog .app-dock__icon { width: 38px; height: 35px; border-width: 2px; }
+.phone-dialog .app-dock__icon .pixel-icon { width: 21px; height: 21px; }
+.phone-profile { display: flex; flex-direction: column; align-items: center; color: var(--ink); text-decoration: none; }
+.phone-profile .chibi-sprite { margin-top: -6px; margin-bottom: -6px; background: #d5c8a1; border: 2px solid #796b4c; }
+.phone-ticker { display: flex; flex-shrink: 0; justify-content: space-around; gap: 9px; padding: 7px 10px; background: #234c3b; color: #f1e9c7; font-size: .63rem; border-bottom: 2px solid #193e2f; }
+.phone-ticker > span { white-space: nowrap; }
+.phone-ticker b { color: #c7d5a7; font-weight: 500; margin-right: 4px; }
+.phone-scroll { flex: 1; overflow: auto; min-height: 0; overscroll-behavior: contain; scrollbar-color: #b5ab84 #ece9d8; }
+.phone-dialog .page { padding: 24px; min-height: 0; }
+.phone-dialog .page h1 { font-size: 1.15rem; }
+.phone-dialog .card-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.phone-dialog .card { padding: 15px; }
+.phone-dialog .stock-heading { flex-wrap: wrap; }
+.phone-dialog .stock-price { font-size: 1.45rem; }
+.phone-dialog .card p { font-size: .85rem; }
+.phone-dialog .card .trade-preview { min-height: 44px; }
+.phone-controls { display: flex; justify-content: space-between; gap: 10px; padding: 10px 15px; border-top: 2px solid #d4c6a4; background: #f3eddc; }
+.phone-home-indicator { height: 4px; min-height: 4px; margin: 4px auto 8px; background: #9caa8b; }
+.news-notification { display: flex; align-items: center; gap: 9px; margin: -15px -15px 15px; padding: 11px 13px; background: #234d3d; color: #f5ebc2; font: .45rem "Silkscreen", monospace; }
+.news-notification .numeric { margin-left: auto; font-size: .6rem; color: #ccd5b9; }
+.news-notification .pixel-icon { width: 20px; height: 20px; }
+.phone-dialog .news-card { border: 2px solid #b8a47a; padding-top: 15px; }
+.phone-dialog .news-card h2 { font-size: 1.15rem; }
+.phone-dialog .prediction { font-size: .75rem; }
+.phone-dialog .prediction > span:last-child { font-size: .73rem; }
+.phone-dialog .close-day { flex-direction: column; align-items: flex-start; padding: 16px; }
+.phone-dialog .status-banner, .bank-service-dialog .status-banner { position: static; font-size: .8rem; }
+.bank-player { position: absolute; z-index: 2; left: 50%; top: 75%; transform: translate(-50%, -50%); transition: top 1450ms linear, transform 1450ms linear; }
+.bank-player--walking { top: 49%; transform: translate(-50%, -50%) scale(.8); }
+.bank-player--inside { top: 72%; transition: none; }
+.bank-counter-hotspot { left: 39%; top: 45%; width: 22%; height: 17%; }
+.bank-vault-hotspot { left: 44%; top: 26%; width: 13%; height: 15%; }
+.bank-vault-hotspot > span { font-size: 15px; }
+.bank-service-dialog { width: min(610px, calc(100vw - 28px)); }
+.bank-service-dialog[open] { display: flex; flex-direction: column; }
+.bank-service-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 17px 20px; border-bottom: 2px solid #b9ab8c; background: #e8dfc4; }
+.bank-service-heading h2 { margin-bottom: 0; font-size: 1.25rem; }
+.bank-service-scroll { padding: 21px; overflow: auto; }
+.bank-accounts { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; padding: 15px; background: #e9eddd; border: 2px solid #9daa8a; }
+.bank-accounts span, .bank-accounts strong { display: block; }
+.bank-accounts span { font-size: .8rem; color: #5f6c55; }
+.bank-accounts strong { font-size: 1.25rem; margin-top: 3px; }
+.savings-terms { padding: 17px 0; }
+.savings-terms > strong { display: block; font-size: 1.3rem; color: #2f6648; margin-bottom: 12px; }
+.savings-terms p { font-size: .85rem; }
+.bank-service-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+.bank-service-tabs button { flex: 1; padding: 8px; font-size: .8rem; }
+.bank-service-tabs [aria-pressed="true"] { background: #315e46; border-color: #244b37; color: #fff8dc; box-shadow: 0 4px #244b37; }
+.bank-service-scroll .success { margin: 15px 0 0; }
+.title-screen { display: flex; align-items: center; justify-content: center; }
+.title-screen::after { content: ''; position: absolute; inset: 0; z-index: 1; background: #112f27a6; }
+.title-menu { position: relative; z-index: 2; text-align: center; padding: 30px; color: #fff6d6; max-width: 690px; }
+.title-menu .eyebrow { color: #d8c88f; }
+.title-menu .hero-title { color: #f0e8be; text-shadow: 4px 5px #173d2c; font-size: clamp(3.3rem, 8vw, 6rem); }
+.title-menu .hero-title span { color: #dfb663; }
+.title-menu .intro { color: #e2e6d0; font-size: 1.1rem; margin-left: auto; margin-right: auto; }
+.title-menu .actions { justify-content: center; }
+.title-menu details { font-size: .85rem; margin-top: 24px; }
+.title-menu summary { font-size: .85rem; color: #e1cb90; }
+.title-menu details p { padding-top: 13px; }
+@media (max-width: 800px) {
+  .game-hud { top: 10px; left: 10px; right: 10px; gap: 12px; padding: 8px 11px; }
+  .hud-brand { font-size: .8rem; }
+  .hud-location > span { font-size: .5rem; }
+  .hud-balances { gap: 14px; }
+  .hud-balances dd { font-size: .8rem; }
+  .hud-balances dt { font-size: .6rem; }
+  .hud-controls { gap: 8px; }
+}
+@media (max-width: 600px) {
+  .game-hud { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; }
+  .hud-balances { order: 3; grid-column: 1 / -1; justify-content: space-between; padding-top: 5px; border-top: 1px solid #62795f; }
+  .hud-balances dd { font-size: .85rem; }
+  .hud-balances dt { font-size: .62rem; }
+  .hud-location > span { font-size: .52rem; }
+  .hud-controls { align-self: start; }
+  .hud-restart { padding: 3px 7px !important; }
+  .hud-restart span { display: none; }
+  .hud-fullscreen { font-size: 20px !important; padding: 2px 6px !important; }
+  .hud-profile .chibi-sprite { --sprite-size: 38px !important; }
+  .hud-profile > span:last-child { display: none; }
+  .scene-caption { left: 12px; bottom: 12px; width: calc(100% - 24px); padding: 13px 15px; }
+  .scene-caption h1 { font-size: .9rem; }
+  .scene-caption p { font-size: .8rem; }
+  .scene-caption .eyebrow { font-size: .4rem; }
+  .bank-player--inside { top: 62%; }
+  .phone-dialog { width: calc(100vw - 14px); height: calc(100dvh - 14px); max-height: calc(100dvh - 14px); max-width: calc(100vw - 14px); border-width: 6px; }
+  .phone-dialog .app-dock { gap: 9px; padding: 11px 5px; flex-wrap: wrap; }
+  .phone-dialog .app-dock a { font-size: .6rem; min-width: 42px; }
+  .phone-dialog .app-dock__icon { width: 33px; height: 32px; }
+  .phone-profile .chibi-sprite { --sprite-size: 42px !important; }
+  .phone-dialog .page { padding: 20px 14px; }
+  .phone-dialog .card-grid { grid-template-columns: 1fr; }
+  .phone-dialog .prediction { display: grid; }
+  .phone-dialog .stock-price { font-size: 1.5rem; }
+  .phone-dialog .card .trade-preview { min-height: 0; }
+  .phone-controls { padding: 8px 12px; }
+  .phone-heading { padding: 8px 12px; }
+  .news-notification { font-size: .4rem; gap: 6px; }
+  .bank-service-scroll { padding: 16px; }
+  .bank-service-heading { padding: 14px 16px; }
+  .bank-service-heading h2 { font-size: 1.1rem; }
+  .bank-accounts { gap: 10px; padding: 12px; }
+  .bank-accounts strong { font-size: 1.1rem; }
+}
+@media (prefers-reduced-motion: reduce) { .scene-canvas, .room-character, .bank-player { transition: none !important; } }

@@ -1,34 +1,58 @@
-import { Link, Navigate, Outlet, useNavigate } from "react-router-dom";
-import GameHeader from "../assets/GameHeaders";
+import { useEffect } from "react";
+import { Link, Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useGame } from "../hooks/game-context";
-import { money } from "../lib/format";
+import { useDayCycle } from "../hooks/use-day-cycle";
+import BedroomScene from "./scene/BedroomScene";
+import GameHUD from "./scene/GameHUD";
+import WorldOptions from "./scene/WorldOptions";
+import StatusBanner from "./StatusBanner";
 import PixelIcon from "./pixel/PixelIcon";
-import ChibiSprite from "./pixel/ChibiSprite";
+
+const titles: Record<string, string> = {
+  "/Market": "Stocks", "/Arbitrage": "Arbitrage", "/Portfolio": "Portfolio",
+  "/DailyReport": "Daily reports", "/FinalReport": "Final report",
+};
 
 export default function GameLayout() {
-  const { game, session, loading, busy, act, refresh } = useGame();
+  const { game, session, loading, busy, refresh } = useGame();
+  const cycle = useDayCycle();
+  const location = useLocation();
   const navigate = useNavigate();
-  if (loading && !game) return <main className="page" role="status">Loading your game…</main>;
-  if (!game && session) return <main className="page"><h1>Could not load your game</h1>
-    <button onClick={() => void refresh()}>Try loading again</button> <Link to="/">Home</Link></main>;
+  const isBank = location.pathname === "/Bank";
+  const isRoom = location.pathname === "/Room";
+  const isPhone = location.pathname === "/Briefing";
+  useEffect(() => {
+    const close = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !isBank && !isRoom) navigate("/Room");
+    };
+    window.addEventListener("keydown", close);
+    return () => window.removeEventListener("keydown", close);
+  }, [isBank, isRoom, navigate]);
+  if (loading && !game) return <main className="game-viewport scene-loading" role="status">Loading your game…</main>;
+  if (!game && session) return <main className="game-viewport scene-loading"><h1>Could not load your game</h1>
+    <button onClick={() => void refresh()}>Try again</button><Link to="/">Home</Link></main>;
   if (!game) return <Navigate to="/" replace />;
-  return <div className="game-shell"><GameHeader />
-    <div className="session-bar"><span className="day-label">DAY {game.day} / 3 <span className="phase-label">{game.phase}</span></span>
-      <dl><div><dt><PixelIcon name="coin" /> Current Cash</dt><dd>{money(game.wallet.cashPence)}</dd></div>
-        <div><dt><PixelIcon name="bank" /> Savings</dt><dd>{money(game.wallet.savingsPence)}</dd></div>
-        <div><dt><PixelIcon name="bag" /> Net Worth</dt><dd>{money(game.netWorthPence)}</dd></div></dl>
-      <button className="quiet" disabled={busy || loading} onClick={() => void refresh()}>Refresh</button></div>
-    {game.phase === "REPORT" && <div className="phase-notice">Day {game.day} is closed. <Link to="/DailyReport">Read your report →</Link></div>}
-    {game.phase === "FINISHED" && <div className="phase-notice">Your three-day run is complete. <Link to="/FinalReport">See your final report →</Link></div>}
-    <div className="phone-content"><div className="phone-status" aria-hidden="true"><PixelIcon name="phone" /><span>FINANCE BRO'S PHONE</span><span className="battery-icon" /></div>
-      <main className="page" aria-busy={busy}><Outlet /></main>
-      <div className="phone-home-indicator" aria-hidden="true" />
-    </div>
-    <div className="phone-companion" aria-hidden="true"><ChibiSprite size={144} animation={game.phase === "FINISHED" || game.phase === "REPORT" ? "cheer" : "phone"} /></div>
-    <footer className="game-footer"><span>Fictional markets. Real lessons.</span>
-      {game.phase === "FINISHED" ? <Link to="/FinalReport">Final report</Link> :
-        <button className="quiet" disabled={busy} onClick={async () => {
-          const updated = await act({ type: "reset" }); if (updated) navigate("/WakeUp");
-        }}>Reset this run</button>}
-    </footer></div>;
+  return <div className="game-viewport" data-time={cycle.night ? "night" : "morning"} data-room-state={cycle.sleeping ? "asleep" : "awake"}>
+    {isBank ? <Outlet /> : <BedroomScene awake={!cycle.sleeping} night={cycle.night} busy={busy} settling={cycle.settling}
+      phoneInHand={isPhone} onWake={() => void cycle.wakeUp()} onSleep={() => void cycle.goToSleep()} onPhone={() => navigate("/Briefing")} />}
+    <GameHUD title={isBank ? "BULLISH PRIVATE BANK" : "THE APARTMENT"} night={cycle.night}
+      onRestart={() => void cycle.restart()} restartDisabled={cycle.settling || busy}
+      profileDisabled={cycle.sleeping || cycle.settling || busy} />
+    <WorldOptions canAct={cycle.canAct} sleeping={cycle.sleeping} />
+    {cycle.message && <div className="bed-feedback" role="alert"><span>{cycle.message}</span>
+      <button onClick={() => cycle.dismissMessage()} aria-label="Dismiss bed message">×</button></div>}
+    {!isBank && !isRoom && (isPhone ?
+      <section className="news-phone" aria-label="Stock news phone">
+        <div className="phone-status"><span className="numeric">{cycle.night ? "22:30" : "09:41"}</span><span className="phone-camera" /><span className="battery-icon" /></div>
+        <div className="phone-heading"><span><PixelIcon name="newspaper" /> BULLISH WIRE</span>
+          <button className="close-button" aria-label="Put phone away" onClick={() => navigate("/Room")}>×</button></div>
+        <div className="phone-scroll"><StatusBanner /><main className="page"><Outlet /></main></div>
+        <span className="phone-home-indicator" aria-hidden="true" />
+      </section> :
+      <section className="activity-panel" aria-label={titles[location.pathname] ?? "Game activity"}>
+        <header className="activity-panel__heading"><span>{titles[location.pathname]}</span>
+          <button className="close-button" aria-label="Close activity" onClick={() => navigate("/Room")}>×</button></header>
+        <div className="activity-panel__scroll"><StatusBanner /><main className="page" aria-busy={busy}><Outlet /></main></div>
+      </section>)}
+  </div>;
 }

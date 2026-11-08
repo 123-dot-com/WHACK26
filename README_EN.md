@@ -47,24 +47,22 @@
 ### Gameplay Loop
 
 ```text
-Home / Bedroom (chibi character, day, money)
+Home / Bedroom (click bed to wake)
        ↓
-Morning Briefing (news, focus stock)
+Phone: stock-news messages (news only)
        ↓
-Predict: BULLISH / NEUTRAL / BEARISH
-       ↓
-TRADING day hub — activities in any order
-    ├── Market: BUY / SELL / HOLD
+Persistent screen options — activities in any order
+    ├── Stocks: Prediction + BUY / SELL / HOLD
     ├── Bank: DEPOSIT / WITHDRAW
     └── Arbitrage: puzzle, Execute
        ↓
-End Day [BACKEND]
+Click bed to sleep → End Day [BACKEND]
     ├── Crowd Simulation (100 agents)
     ├── Market Engine (update prices)
     ├── Savings interest (once per day)
     └── Daily Report (P&L, explanation)
        ↓
-Next Day / Final Report / Reset
+Night / asleep (same day) → click Wake up → Next Day / Final Report
 ```
 
 **Game phases:** `BRIEFING → TRADING → REPORT → BRIEFING` (next day), or `FINISHED` after Day 3.
@@ -74,6 +72,11 @@ Next Day / Final Report / Reset
 - Each day can end only once; the REPORT phase blocks trading, Bank, and Arbitrage actions.
 - Cash, savings, holdings, and price history persist across days.
 - Reset reproduces the seeded demo scenario.
+- **Current screen flow:** the phone shows stock news/messages only. Stocks,
+  Arbitrage and Bank are persistent screen options; predictions are made in Stocks.
+- **Bed controls the clock:** click the bed to sleep and settle End Day, stay on
+  that day at night, then click Wake up to send Next Day. Report screens never
+  advance the day. Night is restored from REPORT/FINISHED after reload.
 
 ### MVP Baseline
 
@@ -145,12 +148,13 @@ Two accounts:
 
 **Proposed MVP rules:**
 - Starting Current balance £10,000; Savings £0.
-- One Savings product: **4% annually**, `annualInterestBps = 400`.
+- One Savings product: **2% per month**, `monthlyInterestBps = 200`, as requested for the game.
+- Deposits may bring the current Savings balance up to **£5,000** (`savingsDepositLimitPence = 500000`). Interest may take the balance above this limit; further deposits require room below it.
 - **1 game day = 1 month**, so players can see interest during the short demo.
 - Unlimited Deposit/Withdraw actions before End Day; no fees or lock period.
 - Compound interest is calculated on the **Savings balance at the moment the day closes**.
-- Formula: `interestPence = round(savingsPence * annualInterestBps / (10_000 * 12))`.
-- Example: £2,000 in Savings → `£6.67` for one game day → new Savings balance `£2,006.67`.
+- Formula: `interestPence = round(savingsPence * monthlyInterestBps / 10_000)`.
+- Example: £2,000 in Savings → `£40.00` for one game day → new Savings balance `£2,040.00`.
 - Moving money between Current and Savings does **not** change total Net Worth.
 - Interest must be credited **exactly once per game day**, persisted as a transaction.
 - Optional future products: Easy Access 2%, Smart Saver 4%, Premium Saver 6% with caps/lock periods (fictional game rates).
@@ -259,7 +263,8 @@ interface GameStateDTO {
   wallet: {
     cashPence: number;
     savingsPence: number;
-    annualInterestBps: number;  // 400 = 4%
+    monthlyInterestBps: number;  // 200 = 2% per month
+    savingsDepositLimitPence: number;  // 500000 = £5,000
   };
   stocks: Array<{
     id: StockId;
@@ -304,7 +309,7 @@ Every game starts with **day-0** stock prices; closing Day N creates a `StockPri
 | Model | Key fields | Purpose |
 |---|---|---|
 | `GameSession` | `id`, `day`, `phase`, `seed`, `version`, `lastSimulatedDay` | Game progression |
-| `Wallet` | `gameId`, `cashPence`, `savingsPence`, `annualInterestBps` | Accounts |
+| `Wallet` | `gameId`, `cashPence`, `savingsPence`, `monthlyInterestBps`, `savingsDepositLimitPence` | Accounts |
 | `Stock` | `id`, `name`, `sector`, `volatility`, `initialPricePence` | Static catalog |
 | `Holding` | `gameId`, `stockId`, `quantity` | Shares held |
 | `StockPrice` | `gameId`, `stockId`, `day`, `pricePence` | Per-game price history |
@@ -345,7 +350,8 @@ Add database-level `CHECK` constraints (via SQL migrations) for non-negative bal
   "wallet": {
     "cashPence": 1000000,
     "savingsPence": 0,
-    "annualInterestBps": 400
+    "monthlyInterestBps": 200,
+    "savingsDepositLimitPence": 500000
   },
   "holdings": { "NOVA": 0, "GREEN": 0, "FINX": 0 }
 }
@@ -638,10 +644,10 @@ Assume the player starts with £10,000:
 2. DEPOSIT £2,000 → Current £6,000; Savings £2,000.
 3. Make £3 from Arbitrage → Current £6,003.
 4. NOVA rises to £104.80 → holdings are worth £2,096.
-5. Savings earns £6.67 interest → Savings £2,006.67.
+5. Savings earns £40.00 interest → Savings £2,040.00.
 
-**End-of-day Net Worth = £6,003 + £2,006.67 + £2,096 = £10,105.67.**  
-**Breakdown:** Market `+£96` + Interest `+£6.67` + Arbitrage `+£3` = `+£105.67`.
+**End-of-day Net Worth = £6,003 + £2,040.00 + £2,096 = £10,139.00.**
+**Breakdown:** Market `+£96` + Interest `+£40.00` + Arbitrage `+£3` = `+£139.00`.
 
 **Final evaluation:** Final Wealth, correct predictions out of 3, exposure/risk context, and a learning takeaway. Low risk must not automatically be treated as always better.
 
@@ -751,7 +757,7 @@ Assume the player starts with £10,000:
 | TR-06 | Trade during REPORT | `INVALID_PHASE` |
 | BK-01 | Deposit £500 | Current −£500; Savings +£500 |
 | BK-02 | Withdraw more than Savings | Reject without update |
-| BK-03 | £2,000 Savings, 4% annual, End Day | +£6.67 interest |
+| BK-03 | £2,000 Savings, 2% monthly, End Day | +£40.00 interest |
 | BK-04 | Retry End Day | No second interest credit |
 | AR-01 | Oil Bundle £69; sell units for £72 | Profit +£3 |
 | AR-02 | Buy individual units for £75; sell bundle for £68 | Loss −£7 |
@@ -912,7 +918,7 @@ bullish/
 
 - 3 days, 3 fictional stocks, £10,000 starting cash.
 - 100 agents across 6 behavior groups.
-- Bank: one Savings Account, 4% annual interest, 1 game day = 1 month.
+- Bank: one Savings Account, 2% monthly interest, £5,000 deposit limit, 1 game day = 1 month. Interest can exceed the deposit limit.
 - Arbitrage: one puzzle and attempt per day, instant profit/loss settlement.
 - Modular monolith, monorepo, shared TypeScript contracts.
 - Seeded scenarios and Reset for a reliable demo.

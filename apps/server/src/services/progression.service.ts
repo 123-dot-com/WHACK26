@@ -30,7 +30,7 @@ export async function endDay(gameId: string, input: VersionRequest, key: string)
           newsSignal: stock.id === news.focusStockId ? news.impact : 0, momentum });
         return simulateMarket({ seed: snapshot.seed, day: snapshot.day, currentPricePence, volatility: stock.volatility, crowd });
       }).sort((a, b) => a.stockId.localeCompare(b.stockId));
-      const interest = calculateInterest(state.wallet.savingsPence, state.wallet.annualInterestBps);
+      const interest = calculateInterest(state.wallet.savingsPence, state.wallet.monthlyInterestBps);
       const arbitrage = snapshot.arbitrageAttempts.find((item) => item.day === snapshot.day)?.profitPence ?? 0;
       simulation = buildDailyReport(state, results, interest, arbitrage);
     }

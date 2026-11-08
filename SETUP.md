@@ -184,3 +184,26 @@ failure. Currency entry is parsed to integer pence before sending requests.
 
 Vite proxies `/api` to `http://localhost:3001`; set `API_PROXY_TARGET` for a
 different local API. The web package participates in the root typecheck command.
+
+## Fullscreen scenes and monthly Savings
+
+Start → click the bed → click the phone → News. The phone contains only stock
+news/messages. Stocks, Arbitrage and Bank are persistent options on the screen;
+prediction choices are in Stocks, and the profile avatar opens Portfolio.
+The game fills the browser; the HUD offers optional native fullscreen.
+Bank keeps its walking entrance and interactive teller/vault.
+
+To close a day, return to Room and click Go to sleep on the bed. A prediction
+must be saved first. The room turns dark and the character sleeps; the backend
+day does not advance. Click Wake up on the bed for the next morning. Reloading
+at night preserves that closed day. Reports can be viewed without advancing;
+there are no other End Day/Next Day controls. Waking after the third night shows
+the final report. The large room instruction panel has been removed.
+
+Savings now pays 2% per game month with a £5,000 deposit limit. The backend
+checks the limit under the session lock and returns 422 SAVINGS_LIMIT_EXCEEDED
+for an over-limit deposit. Interest may exceed the limit and continues to
+compound on the full balance. A £2,000 balance earns £40 at close. Apply the
+monthly-savings migration with `npm run db:deploy` on existing local databases.
+Existing balances and historical reports are retained; new terms also advance
+the session version to invalidate stale writes.

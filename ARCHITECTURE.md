@@ -57,22 +57,49 @@ REPORT and require Next Day to open the next BRIEFING.
 
 ## Pixel interface
 
-Start creates a server session and opens `/WakeUp`: sleep, wake, pick up the
-phone, then `/Briefing`. The sequence is cosmetic, can be skipped, and skips
-automatically for reduced motion. Next Day and Reset also enter this sequence;
-resuming a saved session goes directly to its current phase.
+The game fills the viewport. `/Room` is the scene hub (`/WakeUp` redirects there).
+Start puts the player in bed in the morning. The player clicks the bed to wake,
+then the bedside phone to read `/Briefing`. The room waits for input, including
+with reduced motion. Reset returns to the same initial state.
 
 `components/pixel/ChibiSprite.tsx` is a React wrapper around a four-by-four local
 sprite atlas. An animation prop selects a row and CSS `steps(4)` advances frames;
 the component also supports paused frames, display size and facing direction.
 It has no game-state authority or animation-library dependency.
 
-The app dock exposes News, Stocks, Arbitrage and Bank as buttons. Selecting a
-financial app during BRIEFING first confirms open-market through the API, then
-navigates. The profile avatar links to Portfolio. Only Bank has a full environment
-background; the other activities use the same compact phone UI. Assets and their
-generation prompts are documented in `apps/web/public/art/README.md`. Pixel fonts
-are served locally with their SIL Open Font Licenses in `public/fonts`.
+Persistent screen options expose Room, Stocks, Arbitrage and Bank; Reports appears
+after a day closes. Selecting a financial activity during BRIEFING first confirms
+open-market through the API. Stocks, Arbitrage, Portfolio and reports use activity
+panels. The phone contains only news/messages/stock-watch notifications, without
+trading, predictions, navigation or day controls. Predictions live in Stocks.
+The profile avatar opens Portfolio. Bank keeps its exterior walk and interior
+hotspots; its modeless service dialog leaves the screen options selectable.
+
+`use-day-cycle.ts` is the only UI caller of End Day and Next Day. Clicking the
+awake character's bed validates the saved prediction, commits End Day once and
+animates the character into bed. REPORT is rendered as night with the character
+asleep, including after reload; the backend day stays unchanged. Clicking Wake up
+in that bed sends Next Day, switches to morning and wakes the character. The third
+night ends in FINISHED; its wake action opens the final report without a fourth
+day. Reports have no Next Day controls. Timers finish animation only and never
+advance a game day. Night colors and a moonlit window are rendered from phase.
+
+SceneStage scales the image and its hotspots in the same coordinate system and
+uses a focal point for portrait cropping. No financial calculation depends on
+scene state. Pixel fonts are local; a separate monospace number font keeps money,
+rates and inputs legible. The HUD offers optional native browser fullscreen.
+Its Restart control replaces the former Phone shortcut: it resets the server
+session and local day-cycle state, then returns to the first morning in bed.
+
+## Monthly Savings
+
+The wallet exposes `monthlyInterestBps = 200` and
+`savingsDepositLimitPence = 500000`. Each End Day credits rounded monthly interest
+once on the full balance. The locked deposit transaction rejects a balance that
+would exceed the deposit limit; withdrawals are unaffected. Interest may exceed
+the limit and compounds on subsequent days. The migration preserves balances and
+historical reports, updates the terms and increments existing session versions so
+old in-flight writes become stale. Old idempotency records remain intact.
 
 ## Validation
 

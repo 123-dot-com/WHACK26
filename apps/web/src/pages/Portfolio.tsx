@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-import EndDayButton from "../components/EndDayButton";
 import { useGame } from "../hooks/game-context";
 import { money, signedMoney } from "../lib/format";
 
@@ -16,5 +15,5 @@ export default function Portfolio() {
       <tbody>{game.stocks.map((stock) => <tr key={stock.id}><th scope="row">{stock.id} <span className="muted">{stock.name}</span></th>
         <td>{stock.quantityHeld}</td><td>{money(stock.pricePence)}</td><td>{money(stock.pricePence * stock.quantityHeld)}</td></tr>)}</tbody></table></div>
     <p className="muted">Net Worth = Current Cash + Savings + current value of your shares.</p>
-    {game.phase === "TRADING" && <div className="actions"><Link className="button" to="/Market">Back to Market</Link></div>}<EndDayButton /></>;
+    {game.phase === "TRADING" && <div className="actions"><Link className="button" to="/Market">Back to Market</Link></div>}</>;
 }
