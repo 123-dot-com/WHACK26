@@ -2,7 +2,8 @@ import type { PredictionRequest } from "@bullish/shared";
 import { dailyNews } from "../data/news.ts";
 import { AppError } from "../lib/app-error.ts";
 import { prisma } from "../lib/prisma.ts";
-import { gameStateInclude, toGameState } from "./game-state.mapper.ts";
+import { toGameState } from "./game-state.mapper.ts";
+import { gameStateInclude } from "../repositories/game.repository.ts";
 
 export async function savePrediction(
   gameId: string,

@@ -1,6 +1,7 @@
 import { prisma } from "../lib/prisma.ts";
 import { createAccessToken, hashToken } from "../lib/token.ts"
-import { gameStateInclude, toGameState } from "./game-state.mapper.ts";
+import { toGameState } from "./game-state.mapper.ts";
+import { gameStateInclude } from "../repositories/game.repository.ts";
 import { dailyNews } from "../data/news.ts";
 import { AppError } from "../lib/app-error.ts";
 export async function createGame() {

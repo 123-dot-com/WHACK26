@@ -1,16 +1,5 @@
-import type { GameStateDTO, StockId } from "@bullish/shared";
-import type { Prisma } from "../generated/prisma/client.ts";
-
-export const gameStateInclude = {
-    wallet: true,
-    holdings: { include: { stock: true } },
-    prices: true,
-    predictions: true,
-} as const;
-
-type GameData = Prisma.GameSessionGetPayload<{
-    include: typeof gameStateInclude;
-}>;
+import type { DailyReportDTO, GameStateDTO, StockId } from "@bullish/shared";
+import type { GameData } from "../repositories/game.repository.ts";
 
 export function toGameState(game: GameData): GameStateDTO {
     const wallet = game.wallet;
@@ -72,7 +61,8 @@ export function toGameState(game: GameData): GameStateDTO {
         },
         stocks,
         prediction,
-        arbitrage: {completedToday:false},
+        arbitrage: { completedToday: game.arbitrageAttempts.some((attempt) => attempt.day === game.day) },
         netWorthPence,
+        reports: game.reports.map((report) => report.details as unknown as DailyReportDTO),
     };
 }

@@ -1,13 +1,7 @@
-import './header.css'
+import { Link } from "react-router-dom";
+import PixelIcon from "../components/pixel/PixelIcon";
 
-function Header() {
-    return (
-        <header className="header">
-        <div className="logo"> <a href="./Home">BULLISH!</a></div>
-        <nav>
-        <a href="./Accessibility">Accessibility</a>
-        </nav>
-        </header>
-    );
+export default function Header() {
+  return <header className="site-header"><Link className="logo" to="/">BULLISH! <span>↗</span></Link>
+    <a href="#how-to-play"><PixelIcon name="star" /> How to play</a></header>;
 }
-export default Header;

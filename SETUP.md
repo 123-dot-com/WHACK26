@@ -2,8 +2,9 @@
 
 This repository implements the initial architecture in README_EN.md: React/Vite,
 Express, a shared TypeScript package, and PostgreSQL through Prisma 7.
-The backend supports game creation, session tokens, state, daily news, opening the
-market, and daily predictions. Gameplay screens and financial actions are next.
+The app supports a complete three-day game: briefing, predictions, trading,
+bank transfers and interest, daily arbitrage, deterministic crowd/market simulation,
+daily/final reports, and Reset. All screens use the authoritative API state.
 
 Use Node 24.11+ (Node 24 LTS is a suitable baseline) and Docker Desktop with Linux
 containers. Run the following commands from the repository root. On Windows,
@@ -49,8 +50,9 @@ npm.cmd test
 npm.cmd run build
 ```
 
-Tests cover request validation and the Prediction API, including authorization,
-phase restrictions, persistence, rollback, and concurrent version checks.
+Tests cover request validation, pure financial/simulation engines and real HTTP
+gameplay, including authorization, phase restrictions, persistence, rollback,
+concurrent version checks, persisted idempotency and three-day progression.
 PostgreSQL must be running for the server tests. Each run creates a uniquely named
 temporary database, applies migrations, and removes that database afterward. The
 local Docker role has the database creation privileges needed by this test setup.
@@ -103,8 +105,9 @@ Later migrations add session access, Holdings, StockPrice, and Prediction. Resto
 an applied migration to its original contents if it was changed accidentally; put
 new SQL, including CHECK constraints, in a new migration before applying it.
 
-Add the remaining README section 6 models as their features are implemented:
-Trade, BankTransaction, ArbitrageAttempt, DailyReport, and IdempotencyRecord.
+The core-gameplay migration adds Trade, BankTransaction, ArbitrageAttempt,
+DailyReport and IdempotencyRecord. It includes financial CHECK constraints and
+a partial unique index allowing only one INTEREST credit per game/day.
 
 After changing `apps/server/prisma/schema.prisma`:
 
@@ -143,6 +146,41 @@ Missing tokens return 401; wrong or another game's token returns 403. Invalid JS
 input returns 400; stale versions and closed phases return 409. Use the latest
 version for each request, including `POST /api/games/:gameId/open-market`.
 
-Next features are Trading, End Day and Reports, Bank and Arbitrage, then three-day
-progression and Reset. Persist idempotency keys and add the remaining database
-constraints before enabling financial mutation endpoints.
+## Gameplay and safe retries
+
+The routes in README section 7 are implemented. Financial actions, End Day,
+Next Day and Reset require `Idempotency-Key` (1–128 ASCII letters, digits or
+`._:-`) and a JSON `expectedVersion`. A successful response contains the updated
+GameStateDTO. The arbitrage response includes the settled wallet and
+`arbitrage.completedToday`; the breakdown is persisted and shown in the report.
+GET game includes historical report snapshots in `reports`; individual reports
+are also available at `GET /api/games/:gameId/reports/:day`.
+
+Use a fresh key for each intended action. Retry an interrupted action with the
+same key and identical payload, including the original version. PostgreSQL stores
+the operation/payload hash and exact success envelope in the same transaction as
+the financial changes. Reusing a key with a different payload/operation returns
+409 IDEMPOTENCY_CONFLICT. Invalid quantities/stocks return 400
+INVALID_QUANTITY/INVALID_STOCK; insufficient balances/holdings return 422.
+
+The mutation service locks the session row, checks the recorded key before the
+version, validates the phase, applies repository writes, increments the version,
+and records the response atomically. This serializes competing financial actions
+with predictions/open-market, whose conditional version updates lock the same row.
+End Day loads a Repeatable Read snapshot and computes the engines before entering
+the write transaction; it validates the original version again before settlement.
+
+Prices use whole-penny ticks inside the ±10% band: ceil(90% of current price)
+through floor(110%), with a one-penny floor. A penny-priced stock may stay flat.
+Reports expose crowd/noise contributions and cap/tick adjustments separately.
+Day 3 closes directly into FINISHED and retains its daily report. Reset clears
+gameplay history but preserves the access token, seed, monotonic version and old
+request keys so a delayed retry cannot execute again after a reset.
+
+The browser stores only the session ID/token in localStorage. It reloads game
+state from the API, displays pending actions without changing balances optimistically,
+refreshes on 409, and reuses the original key/payload when retrying a connection
+failure. Currency entry is parsed to integer pence before sending requests.
+
+Vite proxies `/api` to `http://localhost:3001`; set `API_PROXY_TARGET` for a
+different local API. The web package participates in the root typecheck command.

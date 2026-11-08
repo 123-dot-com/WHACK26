@@ -1,0 +1,24 @@
+{
+  "tool": "built-in image_gen.imagegen",
+  "assets": [
+    {
+      "file": "finance-bro-phone-sheet.png",
+      "columns": 4,
+      "rows": 4,
+      "animations": [
+        "idle",
+        "walk",
+        "cheer",
+        "phone"
+      ],
+      "transparent": true,
+      "sourcePrompt": "Use case: stylized-concept. Asset type: production 2D pixel art CHARACTER SPRITE SHEET for a React finance life-simulation browser game called BULLISH. Create a square 1024x1024 RGBA sprite sheet, TRUE TRANSPARENT BACKGROUND, no text. EXACT UNIFORM 4 COLUMNS BY 4 ROWS, 16 frames, each frame centered in its own 256x256 cell. Do NOT draw grid lines or cell borders. One identical adorable chibi young adult finance bro in every frame: huge round head, tiny body, tousled dark brown hair, warm medium skin, expressive dark eyes, cream collared shirt, teal green sweater vest, little golden tie, navy trousers and brown shoes. Cute 3-head-tall JRPG sprite proportions, front-facing 3/4 view, visible complete body including feet, warm and likeable. Real hand-placed retro pixel-art style, chunky hard square pixels, restricted warm woodland green / golden honey / terracotta palette, dark brown 1 logical pixel outlines, no antialiasing, no gradients, no smooth vector look. The same character stays same scale and aligned at the same bottom baseline throughout. Every frame's content must stay fully within the CENTER 65% of its cell leaving transparent padding on all sides. ROW 1 from left to right: 4 idle animation frames, subtle bounce and blink, empty hands. ROW 2: 4 walking cycle frames facing right with alternating legs and arms, empty hands. ROW 3: 4 celebrating animation frames, hands raised, happy face, tiny pixel sparkle above head but entirely inside cell. ROW 4: 4 reading newspaper animation frames, holding a tiny cream newspaper and slight head movement. This is a functional aligned sprite atlas, not a character concept poster. No shadows outside cells, no labels, no watermark, no checkerboard drawn into the actual image.",
+      "editPrompt": "Use case: precise-object-edit. Asset type: pixel art character sprite atlas for a React game. Image 1 is the EDIT TARGET: preserve this same adorable chibi finance bro, same clothes and facial identity, transparent background, same square atlas and exact 4-column by 4-row cell layout and per-cell registration. Keep rows 1, 2 and 3 unchanged as idle / walking / celebrating. CHANGE ONLY ROW 4 (the bottom four cells): replace the newspaper with a small dark rectangular SMARTPHONE in one hand held at chest height, with a tiny light-blue screen facing the character. The other hand can tap the phone. Four subtle phone-reading animation frames, a blink and small hand changes. Remove every newspaper from the bottom row. Preserve crisp square pixel art, the complete body and feet in each cell, consistent character scale, padding, and genuinely transparent RGBA background. No grid lines, no labels, no text, no extra objects. This is a sprite sheet, not a poster."
+    },
+    {
+      "file": "bank-interior.png",
+      "transparent": false,
+      "prompt": "Use case: stylized-concept. Asset type: background illustration for the BANK screen of a cozy pixel chibi finance game. A wide landscape 3:2 game scene: inside a tiny welcoming bank, seen straight-on with slight top-down perspective, authentic crisp 16-bit pixel art. Warm cream walls with dark wooden panel trim, deep forest-green tile floor, honey-colored wooden teller counter across the upper middle, green banker lamp, stacked coins, a tiny brass bell, locked little vault door at the back, potted plant at the left, a tall window with soft morning light at the right. A gold COIN emblem above the counter, but absolutely no words, numbers or lettering. No people or characters baked into the scene. Leave the lower center floor open for a separately animated chibi player sprite. Cozy and friendly like an indie life simulation, not a realistic bank dashboard. Chunky hard square pixels, dark brown outlines, few shades per color, no antialiasing, no gradients, no smooth vector art, no 3D rendering, no watermark. Finished game environment illustration, not a UI mockup."
+    }
+  ]
+}

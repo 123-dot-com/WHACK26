@@ -29,17 +29,22 @@ enum PredictionDirection {
 }
 
 model GameSession {
-  id               String    @id @default(uuid())
-  day              Int       @default(1)
-  phase            GamePhase @default(BRIEFING)
-  seed             Int       @default(2026)
-  version          Int       @default(0)
-  lastSimulatedDay Int       @default(0)
-  wallet           Wallet?
-  access           GameAccess?
-  holdings         Holding[]
-  prices           StockPrice[]
-  predictions Prediction[]
+  id                 String              @id @default(uuid())
+  day                Int                 @default(1)
+  phase              GamePhase           @default(BRIEFING)
+  seed               Int                 @default(2026)
+  version            Int                 @default(0)
+  lastSimulatedDay   Int                 @default(0)
+  wallet             Wallet?
+  access             GameAccess?
+  holdings           Holding[]
+  prices             StockPrice[]
+  predictions        Prediction[]
+  trades             Trade[]
+  bankTransactions   BankTransaction[]
+  arbitrageAttempts  ArbitrageAttempt[]
+  reports            DailyReport[]
+  idempotencyRecords IdempotencyRecord[]
 }
 
 model Wallet {
@@ -51,40 +56,41 @@ model Wallet {
 }
 
 model Stock {
-  id                String      @id
+  id                String       @id
   name              String
   sector            StockSector
   volatility        Float
   initialPricePence Int
   holdings          Holding[]
   prices            StockPrice[]
-  predictions Prediction[]
+  predictions       Prediction[]
+  trades            Trade[]
 }
 
 model GameAccess {
-  gameId String @id
-  code   String @unique
+  gameId String      @id
+  code   String      @unique
   game   GameSession @relation(fields: [gameId], references: [id], onDelete: Cascade)
 }
 
-model Holding{
-  gameID String 
-  stockID String
-  quantity Int @default(0)
-  game GameSession @relation(fields: [gameID], references: [id], onDelete: Cascade)
-  stock Stock @relation(fields: [stockID], references: [id])
+model Holding {
+  gameID   String
+  stockID  String
+  quantity Int         @default(0)
+  game     GameSession @relation(fields: [gameID], references: [id], onDelete: Cascade)
+  stock    Stock       @relation(fields: [stockID], references: [id])
 
   @@id([gameID, stockID])
 }
 
 model StockPrice {
-  gameID String
-  stockID String
-  day Int
+  gameID     String
+  stockID    String
+  day        Int
   pricePence Int
 
-  game GameSession @relation(fields: [gameID], references: [id], onDelete: Cascade)
-  stock Stock @relation(fields: [stockID], references: [id])
+  game  GameSession @relation(fields: [gameID], references: [id], onDelete: Cascade)
+  stock Stock       @relation(fields: [stockID], references: [id])
 
   @@id([gameID, stockID, day])
 }
@@ -94,8 +100,79 @@ model Prediction {
   day       Int
   stockId   String
   direction PredictionDirection
-  game      GameSession @relation(fields: [gameId], references: [id], onDelete: Cascade)
-  stock     Stock       @relation(fields: [stockId], references: [id])
+  game      GameSession         @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  stock     Stock               @relation(fields: [stockId], references: [id])
 
   @@id([gameId, day])
+}
+
+enum TradeSide {
+  BUY
+  SELL
+}
+
+enum BankOperation {
+  DEPOSIT
+  WITHDRAW
+  INTEREST
+}
+
+model Trade {
+  id         String      @id @default(uuid())
+  gameId     String
+  day        Int
+  stockId    String
+  side       TradeSide
+  quantity   Int
+  pricePence Int
+  totalPence Int
+  game       GameSession @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  stock      Stock       @relation(fields: [stockId], references: [id])
+
+  @@index([gameId, day])
+}
+
+model BankTransaction {
+  id          String        @id @default(uuid())
+  gameId      String
+  day         Int
+  operation   BankOperation
+  amountPence Int
+  game        GameSession   @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@index([gameId, day])
+}
+
+model ArbitrageAttempt {
+  gameId       String
+  day          Int
+  puzzleId     String
+  route        String
+  quantity     Int
+  costPence    Int
+  revenuePence Int
+  profitPence  Int
+  game         GameSession @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@id([gameId, day])
+}
+
+model DailyReport {
+  gameId  String
+  day     Int
+  details Json
+  game    GameSession @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@id([gameId, day])
+}
+
+model IdempotencyRecord {
+  gameId       String
+  key          String
+  requestHash  String
+  responseBody Json
+  statusCode   Int
+  game         GameSession @relation(fields: [gameId], references: [id], onDelete: Cascade)
+
+  @@id([gameId, key])
 }

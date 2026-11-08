@@ -4,6 +4,7 @@ import { defineConfig } from 'vite'
 
 // https://vite.dev/config/
 export default defineConfig({
+  server: { proxy: { '/api': process.env.API_PROXY_TARGET ?? 'http://localhost:3001' } },
   plugins: [
     react(),
     babel({ presets: [reactCompilerPreset()] })

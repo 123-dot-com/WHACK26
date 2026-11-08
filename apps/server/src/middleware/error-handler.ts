@@ -27,7 +27,10 @@ export const errorHandler: ErrorRequestHandler = (error: unknown, _req, res, _ne
   const body: ApiFailure = {
     success: false,
     error: {
-      code: invalidRequest ? "INVALID_REQUEST" : "INTERNAL_SERVER_ERROR",
+      code: error instanceof ZodError && error.issues.some((issue) => issue.path[0] === "quantity")
+        ? "INVALID_QUANTITY"
+        : error instanceof ZodError && error.issues.some((issue) => issue.path[0] === "stockId")
+          ? "INVALID_STOCK" : invalidRequest ? "INVALID_REQUEST" : "INTERNAL_SERVER_ERROR",
       message: invalidRequest ? "The request is invalid." : "The request could not be completed.",
     },
   };
