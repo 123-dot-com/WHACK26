@@ -120,7 +120,7 @@ News impact is an input in `[-1, 1]`, **not a predetermined percentage price mov
 | **Morning Briefing** | Fictional news, event impact, focus stock, Prediction |
 | **Market** | 3 stocks, prices, simple chart, sentiment, BUY/SELL |
 | **Portfolio** | Holdings, Current Cash, Net Worth, P&L, history (P1) |
-| **Bank** | Current/Savings cards, interest rate, Deposit/Withdraw, interest estimate |
+| **Bank** | Savings and Loans hotspots, deposits/withdrawals, monthly savings, borrowing/repayment |
 | **Arbitrage Room** | Oil & Bundle prices, blue Buy / red Sell, quantity +/- controls, trade route/profit |
 | **Daily Report** | Price moves, crowd, prediction accuracy, Market P&L, Interest, Arbitrage profit |
 | **Final Report** | Final Wealth, 3 predictions, risk context, takeaway, Reset |
@@ -158,6 +158,28 @@ Two accounts:
 - Moving money between Current and Savings does **not** change total Net Worth.
 - Interest must be credited **exactly once per game day**, persisted as a transaction.
 - Optional future products: Easy Access 2%, Smart Saver 4%, Premium Saver 6% with caps/lock periods (fictional game rates).
+
+### 4.2.1 Loans
+
+The bank's two image hotspots are **Savings** (existing savings service) and
+**Loans**. All amounts use the game's existing currency, GBP, in integer pence.
+
+- Maximum principal: **£10,000**. Only **one active loan** per game.
+- Interest: **5% per game day**, rounded half up to a penny, compounded on the
+  outstanding balance. Borrowed cash is credited to Current Cash immediately;
+  principal debt is deducted from Net Worth, so borrowing is not profit.
+- Full repayment is due **by the close of the next day**. Repayment is manual
+  from Current Cash. Early repayment still includes the first day's 5% interest.
+- Each End Day charges interest once. Closing the due day unpaid records a
+  penalty charge and locks borrowing through the following day, even if the
+  player repays during that locked day. Repayment remains available.
+- Example: borrow £10,000 on Day 1 → £10,500 due on Day 2. Miss that deadline →
+  £11,025 on Day 3, borrowing locked through Day 3. A further missed day gives
+  £11,576.25 at the final close.
+- A timely repayment clears the active loan and permits another loan. No partial
+  repayment is supported. Reset clears loan history, debt and borrowing locks.
+- Day-3 loans are due on Day 4, beyond the demo; outstanding debt including
+  interest remains deducted from final wealth. Reports show loan costs and debt.
 
 ### 4.3 Arbitrage
 
@@ -278,6 +300,14 @@ interface GameStateDTO {
     direction: PredictionDirection;
   } | null;
   arbitrage: { completedToday: boolean };
+  loan: {
+    maxPrincipalPence: number;
+    dailyInterestBps: number;
+    lockedThroughDay: number;
+    canBorrow: boolean;
+    active: { id: string; principalPence: number; balancePence: number;
+      repaymentPence: number; borrowedDay: number; dueDay: number; overdue: boolean } | null;
+  };
   netWorthPence: number;
 }
 ```
@@ -287,6 +317,7 @@ interface GameStateDTO {
 ```text
 NetWorthPence = cashPence + savingsPence
               + Σ(quantityHeld[stock] × currentPricePence[stock])
+              - outstandingLoanBalancePence
 cashPence >= 0; savingsPence >= 0
 quantityHeld: integer >= 0
 pricePence: integer >= 1
@@ -315,6 +346,8 @@ Every game starts with **day-0** stock prices; closing Day N creates a `StockPri
 | `StockPrice` | `gameId`, `stockId`, `day`, `pricePence` | Per-game price history |
 | `Trade` | `gameId`, `day`, `stockId`, `side`, `quantity`, `pricePence`, `totalPence` | Trade audit trail |
 | `BankTransaction` | `gameId`, `day`, `operation`, `amountPence` | Banking audit trail |
+| `Loan` | `gameId`, principal, balance, borrowed/due/accrued days, status | One active loan per game |
+| `LoanEvent` | `gameId`, `loanId`, `day`, `type`, `amountPence` | Borrow, interest, penalty and repayment audit |
 | `Prediction` | `gameId`, `day`, `stockId`, `direction` | Daily prediction |
 | `ArbitrageAttempt` | `gameId`, `day`, `puzzleId`, `route`, `profitPence` | Puzzle outcome |
 | `DailyReport` | `gameId`, `day`, P&L components, `netWorthPence`, `details` JSON | Historical report |
@@ -371,6 +404,8 @@ Add database-level `CHECK` constraints (via SQL migrations) for non-negative bal
 | POST | `/api/games/:gameId/trades` | BUY/SELL |
 | POST | `/api/games/:gameId/bank/deposit` | Deposit funds |
 | POST | `/api/games/:gameId/bank/withdraw` | Withdraw funds |
+| POST | `/api/games/:gameId/bank/loans/borrow` | Borrow up to £10,000 |
+| POST | `/api/games/:gameId/bank/loans/repay` | Repay the full server-quoted amount |
 | GET | `/api/games/:gameId/arbitrage` | Fetch today's puzzle |
 | POST | `/api/games/:gameId/arbitrage/execute` | Execute arbitrage |
 | POST | `/api/games/:gameId/end-day` | Simulate, settle, report |
