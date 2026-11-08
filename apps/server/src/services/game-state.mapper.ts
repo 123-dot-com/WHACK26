@@ -1,4 +1,6 @@
 import type { DailyReportDTO, GameStateDTO, StockId } from "@bullish/shared";
+import { LOAN_DAILY_INTEREST_BPS, LOAN_MAX_PENCE } from "@bullish/shared";
+import { repaymentQuote } from "../engines/loan.engine.ts";
 import type { GameData } from "../repositories/game.repository.ts";
 
 export function toGameState(game: GameData): GameStateDTO {
@@ -49,6 +51,9 @@ export function toGameState(game: GameData): GameStateDTO {
         netWorthPence += stock.quantityHeld * stock.pricePence;
     }
 
+    const activeLoan = game.loans.find((loan) => loan.status === "ACTIVE");
+    netWorthPence -= activeLoan?.balancePence ?? 0;
+
     return {
         gameId: game.id,
         day:game.day,
@@ -63,6 +68,18 @@ export function toGameState(game: GameData): GameStateDTO {
         stocks,
         prediction,
         arbitrage: { completedToday: game.arbitrageAttempts.some((attempt) => attempt.day === game.day) },
+        loan: {
+            maxPrincipalPence: LOAN_MAX_PENCE,
+            dailyInterestBps: LOAN_DAILY_INTEREST_BPS,
+            lockedThroughDay: game.loanLockedThroughDay,
+            canBorrow: game.phase === "TRADING" && !activeLoan && game.day > game.loanLockedThroughDay,
+            active: activeLoan ? {
+                id: activeLoan.id, principalPence: activeLoan.principalPence, balancePence: activeLoan.balancePence,
+                repaymentPence: repaymentQuote(activeLoan).repaymentPence,
+                borrowedDay: activeLoan.borrowedDay, dueDay: activeLoan.dueDay,
+                overdue: activeLoan.lastAccruedDay >= activeLoan.dueDay,
+            } : null,
+        },
         netWorthPence,
         reports: game.reports.map((report) => report.details as unknown as DailyReportDTO),
     };

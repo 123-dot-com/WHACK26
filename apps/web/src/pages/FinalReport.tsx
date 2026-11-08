@@ -12,12 +12,16 @@ export default function FinalReport() {
   const market = game.reports.reduce((sum, report) => sum + report.marketPnlPence, 0);
   const interest = game.reports.reduce((sum, report) => sum + report.interestPence, 0);
   const arbitrage = game.reports.reduce((sum, report) => sum + report.arbitragePnlPence, 0);
+  const loanInterest = game.reports.reduce((sum, report) => sum + (report.loanInterestPence ?? 0), 0);
+  const debt = game.loan?.active?.balancePence ?? 0;
   return <><div className="eyebrow">THREE DAYS. YOUR STORY.</div><h1>That's a wrap, finance bro.</h1>
     <div className="card-grid"><article className="card"><h2>Final wealth</h2><p className="stock-price">{money(game.netWorthPence)}</p><p>Started with £10,000.00</p></article>
       <article className="card"><h2>Total return</h2><p className={`stock-price ${pnl >= 0 ? "positive" : "negative"}`}>{signedMoney(pnl)}</p><p>{(pnl / 10_000).toFixed(2)}% over three days</p></article>
       <article className="card"><h2>Predictions</h2><p className="stock-price">{correct} / 3</p><p>Direction calls are separate from profit.</p></article></div>
     <section className="card"><h2>What drove your result?</h2><dl className="preview"><div><dt>Market P&amp;L</dt><dd>{signedMoney(market)}</dd></div>
-      <div><dt>Savings interest</dt><dd>{signedMoney(interest)}</dd></div><div><dt>Arbitrage P&amp;L</dt><dd>{signedMoney(arbitrage)}</dd></div></dl></section>
+      <div><dt>Savings interest</dt><dd>{signedMoney(interest)}</dd></div><div><dt>Arbitrage P&amp;L</dt><dd>{signedMoney(arbitrage)}</dd></div>
+      <div><dt>Loan interest</dt><dd>{signedMoney(-loanInterest)}</dd></div></dl>
+      {debt > 0 && <p>Outstanding loan debt: <strong className="numeric negative">{money(debt)}</strong>, already deducted from final wealth.</p>}</section>
     <div className="table-wrap"><table><caption>Your three-day track record</caption><thead><tr><th>Day</th><th>Your call</th><th>Actual</th><th>Result</th><th>Stock exposure at close</th></tr></thead>
       <tbody>{game.reports.map((report) => <tr key={report.day}><th scope="row">Day {report.day}</th><td>{report.prediction.chosen}</td><td>{report.prediction.actual}</td>
         <td>{report.prediction.correct ? "Correct" : "Incorrect"}</td><td>{report.exposurePct.toFixed(1)}%</td></tr>)}</tbody></table></div>

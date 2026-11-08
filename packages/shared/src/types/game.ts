@@ -25,8 +25,25 @@ export interface GameStateDTO {
     direction: PredictionDirection;
   } | null;
   arbitrage: { completedToday: boolean };
+  loan: {
+    maxPrincipalPence: number;
+    dailyInterestBps: number;
+    lockedThroughDay: number;
+    canBorrow: boolean;
+    active: LoanDTO | null;
+  };
   netWorthPence: number;
   reports: DailyReportDTO[];
+}
+
+export interface LoanDTO {
+  id: string;
+  principalPence: number;
+  balancePence: number;
+  repaymentPence: number;
+  borrowedDay: number;
+  dueDay: number;
+  overdue: boolean;
 }
 
 export interface NewsDTO {
@@ -69,6 +86,9 @@ export interface DailyReportDTO {
   marketPnlPence: number;
   interestPence: number;
   arbitragePnlPence: number;
+  // Optional for reports saved before loans were introduced.
+  loanInterestPence?: number;
+  loanBalancePence?: number;
   netWorthPence: number;
   exposurePct: number;
   takeaway: string;

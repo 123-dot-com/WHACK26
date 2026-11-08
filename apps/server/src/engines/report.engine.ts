@@ -7,6 +7,7 @@ export function classifyReturn(previousPricePence: number, nextPricePence: numbe
 
 export function buildDailyReport(
   game: GameStateDTO, marketResults: MarketResult[], interestPence: number, arbitragePnlPence: number,
+  loan: { interestPence: number; accruedInterestPence: number; balancePence: number } = { interestPence: 0, accruedInterestPence: 0, balancePence: 0 },
 ): DailyReportDTO {
   if (!game.prediction) throw new Error("A prediction is required to build a report.");
   const focused = marketResults.find((result) => result.stockId === game.prediction!.stockId);
@@ -17,13 +18,15 @@ export function buildDailyReport(
     return sum + stock.quantityHeld * (result.nextPricePence - result.previousPricePence);
   }, 0);
   const stockValue = game.stocks.reduce((sum, stock) => sum + stock.quantityHeld * stock.pricePence, 0);
+  const grossAssetsPence = game.netWorthPence + (game.loan.active?.balancePence ?? 0);
   return { day: game.day,
     prediction: { stockId: game.prediction.stockId, chosen: game.prediction.direction,
       actual, correct: game.prediction.direction === actual },
     marketResults, marketPnlPence, interestPence, arbitragePnlPence,
+    loanInterestPence: loan.interestPence, loanBalancePence: loan.balancePence,
     // Arbitrage has already settled in the snapshot's cash: do not add it twice.
-    netWorthPence: game.netWorthPence + marketPnlPence + interestPence,
-    exposurePct: game.netWorthPence === 0 ? 0 : stockValue / game.netWorthPence * 100,
+    netWorthPence: game.netWorthPence + marketPnlPence + interestPence - loan.accruedInterestPence,
+    exposurePct: grossAssetsPence === 0 ? 0 : stockValue / grossAssetsPence * 100,
     takeaway: game.day === 1 ? "Positive news can create buying pressure. A prediction and a portfolio decision have different consequences."
       : game.day === 2 ? "Momentum can draw in FOMO traders. Yesterday's gain does not guarantee tomorrow's return."
       : "A forecast cut can reverse sentiment. Stock exposure creates both opportunities and losses; savings provide liquidity and steady interest.",

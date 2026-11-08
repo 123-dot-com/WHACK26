@@ -47,6 +47,8 @@ export function advanceDay(tx: Transaction, game: GameData) {
 export async function resetGame(tx: Transaction, game: GameData) {
   // Retain access, seed, monotonic version and old request keys so delayed retries stay harmless.
   await tx.trade.deleteMany({ where: { gameId: game.id } });
+  await tx.loanEvent.deleteMany({ where: { gameId: game.id } });
+  await tx.loan.deleteMany({ where: { gameId: game.id } });
   await tx.bankTransaction.deleteMany({ where: { gameId: game.id } });
   await tx.arbitrageAttempt.deleteMany({ where: { gameId: game.id } });
   await tx.dailyReport.deleteMany({ where: { gameId: game.id } });
@@ -58,5 +60,5 @@ export async function resetGame(tx: Transaction, game: GameData) {
   })) });
   await tx.wallet.update({ where: { gameId: game.id },
     data: { cashPence: 1_000_000, savingsPence: 0, monthlyInterestBps: 200, savingsDepositLimitPence: 500_000 } });
-  await tx.gameSession.update({ where: { id: game.id }, data: { day: 1, phase: "BRIEFING", lastSimulatedDay: 0 } });
+  await tx.gameSession.update({ where: { id: game.id }, data: { day: 1, phase: "BRIEFING", lastSimulatedDay: 0, loanLockedThroughDay: 0 } });
 }

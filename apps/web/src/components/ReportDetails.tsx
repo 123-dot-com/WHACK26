@@ -6,6 +6,9 @@ export default function ReportDetails({ report }: { report: DailyReportDTO }) {
     <div className="card-grid report-totals"><article className="card"><h3>Market P&amp;L</h3><p className={report.marketPnlPence >= 0 ? "positive" : "negative"}>{signedMoney(report.marketPnlPence)}</p></article>
       <article className="card"><h3>Savings interest</h3><p className="positive">{signedMoney(report.interestPence)}</p></article>
       <article className="card"><h3>Arbitrage P&amp;L</h3><p className={report.arbitragePnlPence >= 0 ? "positive" : "negative"}>{signedMoney(report.arbitragePnlPence)}</p></article></div>
+    {((report.loanInterestPence ?? 0) > 0 || (report.loanBalancePence ?? 0) > 0) && <section className="card loan-report"><h3>Loan costs &amp; debt</h3>
+      <p>Today's interest: <strong className="numeric negative">{signedMoney(-(report.loanInterestPence ?? 0))}</strong> · Outstanding debt: <strong className="numeric">{money(report.loanBalancePence ?? 0)}</strong></p>
+      <p className="muted">Loan interest reduces net worth. Borrowed principal is not profit.</p></section>}
     <section className="card prediction-result"><div><h2>{report.prediction.correct ? "You read it right." : "The market had other plans."}</h2>
       <p>{report.prediction.stockId}: your call <strong>{report.prediction.chosen}</strong> · actual <strong>{report.prediction.actual}</strong></p></div>
       <span className="tag">{report.prediction.correct ? "CORRECT" : "INCORRECT"}</span></section>

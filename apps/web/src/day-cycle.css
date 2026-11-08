@@ -56,6 +56,16 @@
 .bank-caption .eyebrow, .bank-caption h1, .bank-caption p { display: none; }
 .bank-caption button { margin-top: 0; }
 .pixel-dialog--modeless { position: fixed; z-index: 20; top: 50%; left: 50%; transform: translate(-50%, -50%); margin: 0; max-height: calc(100dvh - 240px); }
+.loan-terms > strong { display: block; color: #315f46; font-size: 1.3rem; margin-bottom: 12px; }
+.loan-terms p { font-size: .85rem; }
+.loan-lock { padding: 12px; background: #f2dfc0; border: 2px solid #ba9165; font-size: .8rem; color: #854b34; }
+.loan-summary { border-top: 2px solid #c6b58d; padding-top: 17px; }
+.loan-figures { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin: 18px 0; }
+.loan-figures dd { margin-top: 5px; font-size: 1.05rem; }
+.loan-borrow-form { margin: 18px 0; }
+.loan-borrow-form > p { margin: 15px 0; font-size: .85rem; }
+.loan-report { margin: 20px 0; background: #f6ead5; }
+.loan-report p { font-size: .85rem; }
 @media (max-width: 800px) {
   .world-options { bottom: 12px; padding: 9px; gap: 8px; }
   .world-options button { min-width: 65px; padding: 8px 11px; }

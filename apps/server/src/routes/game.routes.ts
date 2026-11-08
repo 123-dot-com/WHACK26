@@ -8,7 +8,7 @@ import {
 } from "../controllers/game.controller.ts";
 import { requireGameAccess } from "../middleware/game-access.ts";
 import { arbitrageController, bankController, progressionController, puzzleController,
-  reportController, tradeController } from "../controllers/gameplay.controller.ts";
+  reportController, tradeController, borrowController, repayController } from "../controllers/gameplay.controller.ts";
 
 export const gameRouter= Router();
 gameRouter.post("/",createGameController);
@@ -38,6 +38,8 @@ gameRouter.post(
 gameRouter.post("/:gameId/trades", requireGameAccess, tradeController);
 gameRouter.post("/:gameId/bank/deposit", requireGameAccess, bankController("DEPOSIT"));
 gameRouter.post("/:gameId/bank/withdraw", requireGameAccess, bankController("WITHDRAW"));
+gameRouter.post("/:gameId/bank/loans/borrow", requireGameAccess, borrowController);
+gameRouter.post("/:gameId/bank/loans/repay", requireGameAccess, repayController);
 gameRouter.get("/:gameId/arbitrage", requireGameAccess, puzzleController);
 gameRouter.post("/:gameId/arbitrage/execute", requireGameAccess, arbitrageController);
 gameRouter.post("/:gameId/end-day", requireGameAccess, progressionController("end-day"));

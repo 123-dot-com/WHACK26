@@ -29,22 +29,25 @@ enum PredictionDirection {
 }
 
 model GameSession {
-  id                 String              @id @default(uuid())
-  day                Int                 @default(1)
-  phase              GamePhase           @default(BRIEFING)
-  seed               Int                 @default(2026)
-  version            Int                 @default(0)
-  lastSimulatedDay   Int                 @default(0)
-  wallet             Wallet?
-  access             GameAccess?
-  holdings           Holding[]
-  prices             StockPrice[]
-  predictions        Prediction[]
-  trades             Trade[]
-  bankTransactions   BankTransaction[]
-  arbitrageAttempts  ArbitrageAttempt[]
-  reports            DailyReport[]
-  idempotencyRecords IdempotencyRecord[]
+  id                   String              @id @default(uuid())
+  day                  Int                 @default(1)
+  phase                GamePhase           @default(BRIEFING)
+  seed                 Int                 @default(2026)
+  version              Int                 @default(0)
+  lastSimulatedDay     Int                 @default(0)
+  loanLockedThroughDay Int                 @default(0)
+  wallet               Wallet?
+  access               GameAccess?
+  holdings             Holding[]
+  prices               StockPrice[]
+  predictions          Prediction[]
+  trades               Trade[]
+  bankTransactions     BankTransaction[]
+  arbitrageAttempts    ArbitrageAttempt[]
+  reports              DailyReport[]
+  idempotencyRecords   IdempotencyRecord[]
+  loans                Loan[]
+  loanEvents           LoanEvent[]
 }
 
 model Wallet {
@@ -176,4 +179,45 @@ model IdempotencyRecord {
   game         GameSession @relation(fields: [gameId], references: [id], onDelete: Cascade)
 
   @@id([gameId, key])
+}
+
+enum LoanStatus {
+  ACTIVE
+  REPAID
+}
+
+enum LoanEventType {
+  BORROW
+  INTEREST
+  PENALTY
+  REPAY
+}
+
+model Loan {
+  id             String      @id @default(uuid())
+  gameId         String
+  principalPence Int
+  balancePence   Int
+  borrowedDay    Int
+  dueDay         Int
+  lastAccruedDay Int
+  status         LoanStatus  @default(ACTIVE)
+  repaidDay      Int?
+  game           GameSession @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  events         LoanEvent[]
+
+  @@index([gameId])
+}
+
+model LoanEvent {
+  id          String        @id @default(uuid())
+  gameId      String
+  loanId      String
+  day         Int
+  type        LoanEventType
+  amountPence Int
+  game        GameSession   @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  loan        Loan          @relation(fields: [loanId], references: [id], onDelete: Cascade)
+
+  @@index([gameId, day])
 }

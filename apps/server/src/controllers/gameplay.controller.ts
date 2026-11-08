@@ -1,14 +1,23 @@
 import type { Request, Response } from "express";
 import { arbitrageRequestSchema, bankTransferRequestSchema, idempotencyKeySchema,
-  tradeRequestSchema, versionRequestSchema } from "@bullish/shared";
+  tradeRequestSchema, versionRequestSchema, borrowRequestSchema } from "@bullish/shared";
 import { z } from "zod";
 import { executeArbitrage, getPuzzle } from "../services/arbitrage.service.ts";
 import { transferMoney } from "../services/bank.service.ts";
 import { endDay, getReport, nextDay, reset } from "../services/progression.service.ts";
 import { executeTrade } from "../services/trading.service.ts";
+import { borrow, repay } from "../services/loan.service.ts";
 
 type GameRequest = Request<{ gameId: string }>;
 const requestKey = (req: Request) => idempotencyKeySchema.parse(req.get("Idempotency-Key"));
+
+export async function borrowController(req: GameRequest, res: Response) {
+  res.json(await borrow(req.params.gameId, borrowRequestSchema.parse(req.body), requestKey(req)));
+}
+
+export async function repayController(req: GameRequest, res: Response) {
+  res.json(await repay(req.params.gameId, versionRequestSchema.parse(req.body), requestKey(req)));
+}
 
 export async function tradeController(req: GameRequest, res: Response) {
   res.json(await executeTrade(req.params.gameId, tradeRequestSchema.parse(req.body), requestKey(req)));

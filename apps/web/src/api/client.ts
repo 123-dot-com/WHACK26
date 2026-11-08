@@ -1,4 +1,4 @@
-import type { ApiResponse, ArbitragePuzzleDTO, ArbitrageRequest, BankTransferRequest,
+import type { ApiResponse, ArbitragePuzzleDTO, ArbitrageRequest, BankTransferRequest, BorrowRequest,
   GameStateDTO, HealthDTO, NewsDTO, PredictionRequest, TradeRequest } from "@bullish/shared";
 
 export class ApiError extends Error {
@@ -14,6 +14,8 @@ type WithoutVersion<T> = Omit<T, "expectedVersion">;
 export type GameAction =
   | { type: "trades"; input: WithoutVersion<TradeRequest> }
   | { type: "bank/deposit" | "bank/withdraw"; input: WithoutVersion<BankTransferRequest> }
+  | { type: "bank/loans/borrow"; input: WithoutVersion<BorrowRequest> }
+  | { type: "bank/loans/repay"; input?: never }
   | { type: "prediction"; input: WithoutVersion<PredictionRequest> }
   | { type: "arbitrage/execute"; input: WithoutVersion<ArbitrageRequest> }
   | { type: "open-market" | "end-day" | "next-day" | "reset"; input?: never };

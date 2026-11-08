@@ -1,6 +1,8 @@
 import type { StockId, VersionRequest } from "@bullish/shared";
 import { dailyNews } from "../data/news.ts";
 import { calculateInterest } from "../engines/bank.engine.ts";
+import { accrueLoan, type LoanAccrual } from "../engines/loan.engine.ts";
+import { persistLoanAccrual } from "../repositories/loan.repository.ts";
 import { simulateCrowd } from "../engines/crowd.engine.ts";
 import { simulateMarket } from "../engines/market.engine.ts";
 import { clamp } from "../engines/random.ts";
@@ -18,6 +20,7 @@ export async function endDay(gameId: string, input: VersionRequest, key: string)
   // Read a consistent snapshot, then run the pure engines outside the write transaction.
   const snapshot = await prisma.$transaction((tx) => findGame(tx, gameId), { isolationLevel: "RepeatableRead" });
   let simulation: ReturnType<typeof buildDailyReport> | undefined;
+  let loanAccrual: LoanAccrual | null = null;
   if (snapshot && snapshot.phase === "TRADING" && snapshot.version === input.expectedVersion) {
     const state = toGameState(snapshot);
     if (state.prediction) {
@@ -32,7 +35,15 @@ export async function endDay(gameId: string, input: VersionRequest, key: string)
       }).sort((a, b) => a.stockId.localeCompare(b.stockId));
       const interest = calculateInterest(state.wallet.savingsPence, state.wallet.monthlyInterestBps);
       const arbitrage = snapshot.arbitrageAttempts.find((item) => item.day === snapshot.day)?.profitPence ?? 0;
-      simulation = buildDailyReport(state, results, interest, arbitrage);
+      const activeLoan = snapshot.loans.find((loan) => loan.status === "ACTIVE") ?? null;
+      loanAccrual = accrueLoan(activeLoan, snapshot.day, snapshot.loanLockedThroughDay);
+      const earlierCharges = snapshot.loanEvents.filter((event) => event.day === snapshot.day
+        && (event.type === "INTEREST" || event.type === "PENALTY")).reduce((sum, event) => sum + event.amountPence, 0);
+      simulation = buildDailyReport(state, results, interest, arbitrage, {
+        interestPence: earlierCharges + (loanAccrual?.interestPence ?? 0),
+        accruedInterestPence: loanAccrual?.interestPence ?? 0,
+        balancePence: loanAccrual?.balancePence ?? activeLoan?.balancePence ?? 0,
+      });
     }
   }
   return mutateGame({ gameId, key, operation: "end-day", input, phases: ["TRADING"],
@@ -46,6 +57,7 @@ export async function endDay(gameId: string, input: VersionRequest, key: string)
       if (!simulation || snapshot?.version !== game.version || !game.wallet) {
         throw new AppError(409, "VERSION_CONFLICT", "Your game has changed. Reload and try again.");
       }
+      await persistLoanAccrual(tx, game.id, game.day, loanAccrual);
       await persistDayClose(tx, game, simulation, checkedPence(game.wallet.savingsPence + simulation.interestPence));
     },
   });

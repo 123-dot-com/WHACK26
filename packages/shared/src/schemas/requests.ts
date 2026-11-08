@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { LOAN_MAX_PENCE } from "../rules/loans.js";
 
 const positiveInteger = z.number().int().positive().max(2_147_483_647);
 const expectedVersion = z.number().int().nonnegative().max(2_147_483_646);
@@ -12,6 +13,11 @@ export const tradeRequestSchema = z.strictObject({
 
 export const bankTransferRequestSchema = z.strictObject({
   amountPence: positiveInteger,
+  expectedVersion,
+});
+
+export const borrowRequestSchema = z.strictObject({
+  amountPence: positiveInteger.max(LOAN_MAX_PENCE),
   expectedVersion,
 });
 
@@ -41,3 +47,4 @@ export type TradeRequest = z.infer<typeof tradeRequestSchema>;
 export type BankTransferRequest = z.infer<typeof bankTransferRequestSchema>;
 export type VersionRequest = z.infer<typeof versionRequestSchema>;
 export type ArbitrageRequest = z.infer<typeof arbitrageRequestSchema>;
+export type BorrowRequest = z.infer<typeof borrowRequestSchema>;

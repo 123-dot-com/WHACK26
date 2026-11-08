@@ -6,6 +6,8 @@ export const gameStateInclude = {
   holdings: { include: { stock: true } },
   prices: true,
   predictions: true,
+  loans: true,
+  loanEvents: true,
   arbitrageAttempts: true,
   reports: { orderBy: { day: "asc" } },
 } as const;
