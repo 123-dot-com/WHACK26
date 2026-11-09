@@ -2,8 +2,8 @@ import { app } from "./app.ts";
 import { env } from "./lib/env.ts";
 import { prisma } from "./lib/prisma.ts";
 
-const server = app.listen(env.PORT, () => {
-  console.log(`API running at http://localhost:${env.PORT}`);
+const server = app.listen(env.PORT, "0.0.0.0", () => {
+  console.log(`Server listening on port ${env.PORT}`);
 });
 
 for (const signal of ["SIGINT", "SIGTERM"] as const) {

@@ -70,8 +70,9 @@ npm.cmd run start -w @bullish/server
 ```
 
 Supply `DATABASE_URL`, `PORT`, and `CORS_ORIGIN` in that process's environment.
-The Vite `/api` proxy is for development only; deployed frontend hosting needs an
-`/api` rewrite to Express or a separately configured API base URL.
+With `NODE_ENV=production`, Express also serves `apps/web/dist`, including React
+routes on reload. Build the entire repository first. The Vite `/api` proxy is for
+development only. See [DEPLOY_RAILWAY.md](DEPLOY_RAILWAY.md) for the cloud walkthrough.
 
 ## Code boundaries
 

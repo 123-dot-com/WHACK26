@@ -10,6 +10,7 @@
         "node": ">=24.11.0"
     },
     "scripts": {
+        "start": "npm run start -w @bullish/server",
         "dev": "npm run build -w @bullish/shared && npm run db:generate && concurrently -k -n shared,web,server \"npm:dev:shared\" \"npm:dev:web\" \"npm:dev:server\"",
         "dev:shared": "npm run dev -w @bullish/shared",
         "dev:web": "npm run dev -w apps/web",
