@@ -2,7 +2,7 @@ import type { Request, Response } from "express";
 import { arbitrageRequestSchema, bankTransferRequestSchema, idempotencyKeySchema,
   tradeRequestSchema, versionRequestSchema, borrowRequestSchema } from "@bullish/shared";
 import { z } from "zod";
-import { executeArbitrage, getPuzzle } from "../services/arbitrage.service.ts";
+import { executeArbitrage, getArbitrageMarket } from "../services/arbitrage.service.ts";
 import { transferMoney } from "../services/bank.service.ts";
 import { endDay, getReport, nextDay, reset } from "../services/progression.service.ts";
 import { executeTrade } from "../services/trading.service.ts";
@@ -36,8 +36,8 @@ export function bankController(operation: "DEPOSIT" | "WITHDRAW") {
 }
 
 export async function puzzleController(req: GameRequest, res: Response) {
-  const result = await getPuzzle(req.params.gameId);
-  res.json({ success: true, data: result.puzzle, stateVersion: result.version });
+  const result = await getArbitrageMarket(req.params.gameId);
+  res.json({ success: true, data: result.market, stateVersion: result.version });
 }
 
 export async function arbitrageController(req: GameRequest, res: Response) {

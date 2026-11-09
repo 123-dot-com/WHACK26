@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1536" height="1024" viewBox="0 0 1536 1024" shape-rendering="crispEdges">
+  <defs>
+    <pattern id="paving" width="160" height="76" patternUnits="userSpaceOnUse"><rect width="160" height="76" fill="#b8ad90"/><path d="M0 0H160V76H0Z" fill="none" stroke="#918b71" stroke-width="4"/><path d="M6 6H153" stroke="#d4c8a6" stroke-width="4"/></pattern>
+    <pattern id="brick" width="160" height="84" patternUnits="userSpaceOnUse"><rect width="160" height="84" fill="#d1b685"/><path d="M0 0H160M0 42H160M80 0V42M0 42V84M160 42V84" fill="none" stroke="#b69a71" stroke-width="4"/></pattern>
+    <g id="crate"><rect width="112" height="90" fill="#a67b47" stroke="#684c32" stroke-width="8"/><path d="M0 27H112M0 63H112M24 0V90M88 0V90" stroke="#c49659" stroke-width="8"/><path d="M8 8L104 82" stroke="#725638" stroke-width="8"/></g>
+    <g id="lamp"><rect x="-13" y="0" width="26" height="18" fill="#604d32"/><rect x="-24" y="18" width="48" height="66" fill="#f2d389" stroke="#604d32" stroke-width="8"/><path d="M0 18V84" stroke="#aa844e" stroke-width="6"/></g>
+  </defs>
+  <rect width="1536" height="1024" fill="#bdc9ab"/>
+  <path d="M0 120H190V84H372V124H500V168H0ZM1070 100H1178V66H1364V110H1536V160H1070Z" fill="#dce0c2"/>
+  <path d="M0 390H1536V740H0Z" fill="#82926d"/>
+  <rect y="718" width="1536" height="306" fill="url(#paving)"/>
+  <rect x="178" y="272" width="1180" height="476" fill="url(#brick)" stroke="#725f40" stroke-width="12"/>
+  <path d="M120 280L240 140H1296L1416 280Z" fill="#496b54" stroke="#344e3b" stroke-width="14"/>
+  <path d="M190 250L260 172H1276L1345 250Z" fill="#64836a"/>
+  <path d="M270 186H1266M246 216H1290" stroke="#7a9475" stroke-width="8"/>
+  <rect x="534" y="208" width="468" height="108" fill="#284b38" stroke="#b59b61" stroke-width="12"/>
+  <text x="768" y="254" fill="#f4e8bc" text-anchor="middle" font-family="monospace" font-size="31" font-weight="bold" letter-spacing="5">TRADING MARKET</text>
+  <text x="768" y="288" fill="#b9c69b" text-anchor="middle" font-family="monospace" font-size="17" letter-spacing="5">BUY · REPACK · SELL</text>
+  <rect x="595" y="340" width="346" height="404" fill="#443c2b" stroke="#735638" stroke-width="12"/>
+  <rect x="623" y="360" width="290" height="384" fill="#263d2c"/>
+  <path d="M650 420H886M650 466H886M650 512H886" stroke="#38513a" stroke-width="12"/>
+  <rect x="575" y="710" width="386" height="34" fill="#c6af7e"/>
+  <rect x="555" y="744" width="426" height="24" fill="#96886a"/>
+  <path d="M635 768L485 1024H1051L901 768Z" fill="#cfc3a3" opacity=".65"/>
+  <g><rect x="219" y="374" width="286" height="283" fill="#5a6646" stroke="#795d3b" stroke-width="10"/>
+    <path d="M202 366H522L546 450H178Z" fill="#ead9ad" stroke="#77583a" stroke-width="8"/>
+    <path d="M220 370H261L246 446H199ZM302 370H343L344 446H293ZM384 370H425L443 446H395ZM466 370H507L530 446H483Z" fill="#9d5b43"/>
+    <rect x="202" y="633" width="320" height="38" fill="#bb8c51" stroke="#705031" stroke-width="8"/>
+    <rect x="226" y="671" width="20" height="78" fill="#725335"/><rect x="478" y="671" width="20" height="78" fill="#725335"/>
+    <g fill="#d8c287" stroke="#76613c" stroke-width="5"><rect x="240" y="526" width="54" height="106"/><rect x="311" y="545" width="72" height="87"/><rect x="402" y="508" width="74" height="124"/></g>
+    <path d="M250 553H284M321 569H374M414 540H465" stroke="#b39659" stroke-width="12"/>
+  </g>
+  <g><rect x="1030" y="374" width="286" height="283" fill="#5a6646" stroke="#795d3b" stroke-width="10"/>
+    <path d="M1013 366H1333L1357 450H989Z" fill="#ead9ad" stroke="#77583a" stroke-width="8"/>
+    <path d="M1031 370H1072L1057 446H1010ZM1113 370H1154L1155 446H1104ZM1195 370H1236L1254 446H1206ZM1277 370H1318L1341 446H1294Z" fill="#577c5a"/>
+    <rect x="1013" y="633" width="320" height="38" fill="#bb8c51" stroke="#705031" stroke-width="8"/>
+    <rect x="1037" y="671" width="20" height="78" fill="#725335"/><rect x="1289" y="671" width="20" height="78" fill="#725335"/>
+    <g fill="#bcaa70" stroke="#75603b" stroke-width="5"><rect x="1054" y="557" width="80" height="75"/><rect x="1150" y="521" width="58" height="111"/><rect x="1231" y="543" width="58" height="89"/></g>
+    <path d="M1064 582H1124M1160 549H1198M1241 570H1279" stroke="#e6d49e" stroke-width="13"/>
+  </g>
+  <use href="#lamp" x="550" y="397"/><use href="#lamp" x="986" y="397"/>
+  <use href="#crate" x="86" y="694"/><use href="#crate" x="142" y="604"/>
+  <use href="#crate" x="1352" y="686"/><use href="#crate" x="1376" y="596"/>
+  <g fill="#536c48"><path d="M0 684H88V750H0ZM44 646H104V730H44ZM1445 668H1536V750H1445ZM1417 705H1482V766H1417Z"/></g>
+</svg>

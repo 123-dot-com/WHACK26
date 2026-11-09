@@ -1,0 +1,67 @@
+.market-player { position: absolute; z-index: 2; left: 50%; top: 83%; transform: translate(-50%, -50%); transition: top 1.6s linear, transform 1.6s linear, opacity 1.6s linear; }
+.market-player--walking { top: 54%; transform: translate(-50%, -50%) scale(.6); opacity: .6; }
+.market-player--inside { left: 12%; top: 78%; transform: translate(-50%, -50%) scale(.85); opacity: 1; }
+.trading-stall { position: absolute; z-index: 15; top: 135px; bottom: 128px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; width: min(1120px, calc(100% - 50px)); background: #e9d9b3; border: 7px solid #725035; box-shadow: 0 0 0 3px #b59161, 9px 10px #1a302475; }
+.stall-awning { display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; gap: 20px; padding: 22px 24px 17px; border-top: 18px solid transparent; border-image: repeating-linear-gradient(90deg, #e9dcb7 0 44px, #4c7457 44px 88px) 18; color: #f6edcf; background: #234c3b; border-bottom: 5px solid #b28a56; }
+.stall-awning .eyebrow { color: #c8d1a9; font-size: .55rem; }
+.stall-awning h1 { margin: 7px 0 0; color: #fff3cf; font: 1.1rem "Silkscreen", monospace; }
+.stall-awning .close-button { color: #4e382b; background: #fff4d6; }
+.stall-navigation { display: flex; flex-shrink: 0; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 20px; background: #d4bc8b; border-bottom: 3px solid #a98353; }
+.stall-navigation nav { display: flex; gap: 8px; }
+.stall-navigation button { padding: 7px 14px; border-width: 2px; box-shadow: 0 2px #826443; font-size: .8rem; }
+.stall-navigation button[aria-pressed="true"] { color: #fff4d6; background: #345e45; }
+.stall-navigation > span { font-size: .72rem; white-space: nowrap; }
+.stall-scroll { min-height: 0; flex: 1; overflow: auto; overscroll-behavior: contain; background: repeating-linear-gradient(0deg, #ead9b2 0 75px, #e5d0a6 75px 77px); }
+.stall-scroll .status-banner { position: static; flex-shrink: 0; font-size: .8rem; }
+.stall-order { margin: 0; }
+.stall-rules { flex-shrink: 0; margin: 0; padding: 14px 22px; color: #674e38; font-size: .8rem; line-height: 1.7; }
+.market-shelf { display: grid; align-content: start; grid-template-columns: repeat(auto-fit, minmax(185px, 1fr)); gap: 16px; padding: 12px 20px 20px; border-bottom: 17px solid #8a603b; box-shadow: 0 5px #63462f; }
+.shelf-item { min-width: 0; padding: 12px 14px 14px; border: 2px solid #ad8e60; background: #fff4d5; box-shadow: 4px 5px #a78a5d66; }
+.shelf-package { width: 56px; height: 48px; margin: 0 auto 8px; display: grid; place-items: center; background: #c69759; border: 4px solid #715033; box-shadow: inset 0 10px #e3c28c, 4px 4px #b59a6b; }
+.shelf-package span { padding: 2px 4px; background: #f6e7ba; border: 2px solid #a6804f; color: #5e4734; font: .8rem "Numbers", monospace; }
+.shelf-item h2 { margin: 0; min-height: 1.6em; color: #3b4f33; text-align: center; font-size: 1rem; }
+.shelf-unit { margin: 4px 0 8px; text-align: center; color: #88704f; font-size: .72rem; }
+.shelf-prices { display: grid; gap: 6px; padding: 8px 0; margin: 0 0 10px; border-top: 2px dashed #c6ad7b; border-bottom: 2px dashed #c6ad7b; }
+.shelf-prices > div { display: flex; justify-content: space-between; gap: 10px; font-size: .85rem; }
+.shelf-prices dd { margin: 0; color: #354f38; font-size: .8rem; }
+.shelf-quantities { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.shelf-quantities label { display: flex; flex-direction: column; gap: 5px; margin: 0; color: #67533b; font-size: .73rem; }
+.shelf-quantities input { width: 100%; min-width: 0; padding: 6px; border: 2px solid #a0885c; background: #fffdf0; font-size: 16px; }
+.stall-checkout { display: flex; flex-shrink: 0; align-items: center; justify-content: space-between; gap: 18px; padding: 16px 22px; }
+.stall-checkout p { margin: 0; font-size: .8rem; }
+.stall-checkout button { flex-shrink: 0; font-size: .85rem; }
+.stall-browse { display: flex; flex-shrink: 0; justify-content: space-between; align-items: center; gap: 14px; padding: 12px 18px; border-top: 4px solid #9f7a4d; background: #cbae7a; }
+.stall-browse button { padding: 9px 12px; font-size: .78rem; border-width: 2px; }
+.stall-browse > span { color: #5f4a32; font-size: .75rem; text-align: center; }
+.stall-message { padding: 24px; }
+@media (max-width: 800px) {
+  .trading-stall { top: 132px; bottom: 120px; width: calc(100% - 28px); border-width: 5px; }
+  .market-shelf { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .market-player--inside { left: 10%; }
+}
+@media (max-width: 600px) {
+  .trading-stall { top: 132px; bottom: 108px; width: calc(100% - 24px); border-width: 4px; }
+  .stall-awning { padding: 12px; gap: 10px; border-top-width: 12px; }
+  .stall-awning h1 { font-size: .8rem; line-height: 1.6; }
+  .stall-awning .eyebrow { font-size: .4rem; }
+  .stall-navigation { padding: 10px; gap: 8px; }
+  .stall-navigation nav { gap: 5px; }
+  .stall-navigation button { padding: 6px 9px; font-size: .7rem; }
+  .stall-navigation > span { font-size: .6rem; }
+  .stall-rules { padding: 12px; font-size: .72rem; }
+  .market-shelf { padding: 6px 10px 14px; gap: 10px; border-bottom-width: 12px; }
+  .shelf-item { padding: 13px 9px; }
+  .shelf-package { display: none; }
+  .shelf-item h2 { font-size: .85rem; }
+  .shelf-prices > div { gap: 5px; font-size: .73rem; }
+  .shelf-prices dd { font-size: .7rem; }
+  .shelf-quantities { gap: 6px; }
+  .shelf-quantities label { font-size: .66rem; }
+  .stall-checkout { padding: 10px 12px; }
+  .stall-checkout > p:not([role]) { display: none; }
+  .stall-checkout button { width: 100%; }
+  .stall-browse { padding: 10px; gap: 8px; }
+  .stall-browse > span { display: none; }
+  .stall-browse button { padding: 8px; font-size: .7rem; }
+}
+@media (prefers-reduced-motion: reduce) { .market-player { transition: none; } }

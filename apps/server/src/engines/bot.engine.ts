@@ -1,6 +1,6 @@
 import type { AgentGroup, InvestorActivityDTO, NewsDTO, StockId } from "@bullish/shared";
 import { agentGroups, decideCrowd } from "./crowd.engine.ts";
-import { calculateArbitrage, createPuzzle } from "./arbitrage.engine.ts";
+import { calculateArbitrage, createArbitrageMarket, findArbitrageOrder } from "./arbitrage.engine.ts";
 import { calculateInterest, calculateTransfer } from "./bank.engine.ts";
 import { accrueLoan, calculateBorrow, calculateRepayment, repaymentQuote, type LoanBalance } from "./loan.engine.ts";
 import { calculateTrade } from "./trading.engine.ts";
@@ -130,19 +130,14 @@ export function planBotDay(portfolios: BotPortfolio[], context: BotDayContext): 
       }
     }
 
-    // Each bot gets the same puzzle, one attempt, and must fund the gross cost.
-    if (random() < strategy.arbitrageChance) {
-      const puzzle = createPuzzle(context.day, false);
-      const bundleProfit = puzzle.unitSellPence * puzzle.bundleSize - puzzle.bundleBuyPence;
-      const unitProfit = puzzle.bundleSellPence - puzzle.unitBuyPence * puzzle.bundleSize;
-      const bundleFirst = bundleProfit >= unitProfit;
-      const cost = bundleFirst ? puzzle.bundleBuyPence : puzzle.unitBuyPence * puzzle.bundleSize;
-      const quantity = Math.floor(bot.cashPence * (.1 + random() * .2) / cost);
-      if (Math.max(bundleProfit, unitProfit) > 0 && quantity > 0) {
-        const result = calculateArbitrage(puzzle, { puzzleId: puzzle.puzzleId,
-          route: bundleFirst ? "BUY_BUNDLE_SELL_UNITS" : "BUY_UNITS_SELL_BUNDLE", quantity, expectedVersion: 0 }, bot.cashPence);
+    // Each bot sees the same three stalls and can fund one basket per stall.
+    for (const puzzle of createArbitrageMarket(context.seed, context.day).stalls) {
+      if (random() >= strategy.arbitrageChance) continue;
+      const order = findArbitrageOrder(puzzle, Math.floor(bot.cashPence * (.1 + random() * .2)));
+      if (order) {
+        const result = calculateArbitrage(puzzle, order, bot.cashPence);
         bot.cashPence = result.cashPence;
-        actions.push({ type: "ARBITRAGE", amountPence: result.profitPence, quantity });
+        actions.push({ type: "ARBITRAGE", amountPence: result.profitPence, quantity: result.quantity });
       }
     }
 

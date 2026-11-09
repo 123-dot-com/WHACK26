@@ -19,11 +19,11 @@ export async function persistTransfer(tx: Transaction, game: GameData, operation
 }
 
 export async function persistArbitrage(tx: Transaction, game: GameData, input: ArbitrageRequest,
-  result: { costPence: number; revenuePence: number; profitPence: number; cashPence: number }) {
+  result: { costPence: number; revenuePence: number; profitPence: number; quantity: number; cashPence: number }) {
   const { cashPence, ...settlement } = result;
   await tx.wallet.update({ where: { gameId: game.id }, data: { cashPence } });
   await tx.arbitrageAttempt.create({ data: { gameId: game.id, day: game.day,
-    puzzleId: input.puzzleId, route: input.route, quantity: input.quantity, ...settlement } });
+    puzzleId: input.puzzleId, route: "MARKET_BASKET", orders: input.orders, ...settlement } });
 }
 
 export async function persistDayClose(tx: Transaction, game: GameData, report: DailyReportDTO,

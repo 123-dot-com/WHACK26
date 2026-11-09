@@ -52,7 +52,7 @@ describe("bot finances", () => {
           expect(Number.isSafeInteger(cash)).toBe(true);
           expect(cash).toBeGreaterThanOrEqual(0);
           expect(Object.values(bot.holdings).every((quantity) => Number.isSafeInteger(quantity) && quantity >= 0)).toBe(true);
-          expect(bot.lastActions.filter((action) => action.type === "ARBITRAGE").length).toBeLessThanOrEqual(1);
+          expect(bot.lastActions.filter((action) => action.type === "ARBITRAGE").length).toBeLessThanOrEqual(3);
           for (const action of bot.lastActions) {
             activity.add(action.type);
             if (action.type === "ARBITRAGE" || action.type === "SAVINGS_INTEREST") netIncome += action.amountPence;

@@ -70,14 +70,15 @@ All participants, including the player, start with 1,000,000 pence. The six
 personalities vary their savings targets, trade sizes, arbitrage participation
 and borrowing appetite. Bots use the existing financial engines and the same
 limits as the player: 2% savings interest, a 500,000-pence deposit ceiling,
-5% daily loan interest, repayment/overdue locks, and one funded arbitrage attempt
-per day. They decide from today's news and prior closes, before closing prices
+5% daily loan interest, repayment/overdue locks, and one funded arbitrage basket
+per stall (three stalls per day). They decide from today's news and prior closes, before closing prices
 are computed. Crowd votes express sentiment; actual bot trades also require
 available cash or owned shares.
 
 End Day stores all 100 settled portfolios inside the existing DailyReport JSON,
 in the same transaction as prices, interest and the player's report. Public
-reports omit these internal portfolios and include a top-ten ranking snapshot.
+reports omit these internal portfolios. Only the final day-three report exposes
+the top-ten ranking snapshot after the session reaches FINISHED.
 No database migration is needed. Sessions predating the feature reconstruct
 missing bot snapshots deterministically from their seed and price history.
 Reset removes the snapshots with the reports and reproduces the same scenario.
@@ -87,8 +88,43 @@ Repeatable Read snapshot. It ranks the player and bots by cash + savings + curre
 share value - full outstanding debt, returning ten leaders and the player's rank
 even when outside the top ten. Equal wealth shares a competition rank, with
 deterministic display order. The player's current actions update their wealth;
-bot portfolios advance only at End Day. Ranking remains available in every phase
-without opening the market. Daily and final reports keep their closing rankings.
+bot portfolios advance only at End Day. Rankings unlock only after all three days
+have closed. Earlier API requests return LEADERBOARD_LOCKED; public reports and
+saved-response replays omit early ranking snapshots, including those from older
+sessions. The Ranking button and final report reveal the final standings only
+after FINISHED; daily reports do not display rankings. Reset locks rankings again.
+
+## Trading market
+
+The arbitrage catalog contains 60 distinct products with 20 problems each using
+two, three or four interchangeable package sizes. A dedicated seeded stream
+draws three stalls per day without repeating any of the nine products within a
+game. Prices have a separate stream and remain stable across reloads, browsing
+and version changes. Some stalls have no profitable repacking route.
+
+The player enters a separate market scene, walks through its entrance and browses
+one wooden shelf at a time. Each product format has a posted buy/sell price and
+independent buy/sell quantity fields. Previous/Next and three stall buttons retain
+draft quantities while browsing. The decision screen does not compute or display
+purchase totals, sale totals or profit/loss, and does not gate confirmation on
+profitability. Resulting wealth and settled P&L remain in the normal game reports.
+The items and confirmation bar share one scrolling area: Confirm trade follows
+the full shelf, so it does not reserve height while browsing the goods.
+
+`GET /api/games/:gameId/arbitrage` returns an ArbitrageMarketDTO containing the
+three stalls and completion flags. `POST /api/games/:gameId/arbitrage/execute`
+accepts a puzzleId and up to four order lines, each with itemId, buyQuantity and
+sellQuantity. The server validates whole quantities, known unique items, equal
+base units bought and sold, and sufficient cash for all purchases before sale
+proceeds. It computes money with integer arithmetic and settles cash, the order
+audit, session version and idempotency record atomically. Losing baskets are valid.
+
+The arbitrage-market migration preserves old oil attempts, adds the order audit
+and changes the attempt key to game/day/puzzle. Each stall allows one confirmed
+basket and the session allows three total trades per day; prior oil attempts count
+towards that limit. Daily reports sum all of the day's settled arbitrage results.
+Bots use the same three stalls, conservation rule, prices, funding and attempt
+limits, and may skip a stall without a profitable route. Reset removes attempts.
 
 ## Pixel interface
 

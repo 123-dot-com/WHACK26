@@ -20,6 +20,7 @@ export default function GameLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const isBank = location.pathname === "/Bank";
+  const isTradingMarket = location.pathname === "/Arbitrage";
   const isRoom = location.pathname === "/Room";
   const isPhone = location.pathname === "/Briefing";
   useEffect(() => {
@@ -34,15 +35,15 @@ export default function GameLayout() {
     <button onClick={() => void refresh()}>Try again</button><Link to="/">Home</Link></main>;
   if (!game) return <Navigate to="/" replace />;
   return <div className="game-viewport" data-time={cycle.night ? "night" : "morning"} data-room-state={cycle.sleeping ? "asleep" : "awake"}>
-    {isBank ? <Outlet /> : <BedroomScene awake={!cycle.sleeping} night={cycle.night} busy={busy} settling={cycle.settling}
+    {isBank || isTradingMarket ? <Outlet /> : <BedroomScene awake={!cycle.sleeping} night={cycle.night} busy={busy} settling={cycle.settling}
       phoneInHand={isPhone} onWake={() => void cycle.wakeUp()} onSleep={() => void cycle.goToSleep()} onPhone={() => navigate("/Briefing")} />}
-    <GameHUD title={isBank ? "BULLISH PRIVATE BANK" : "THE APARTMENT"} night={cycle.night}
+    <GameHUD title={isBank ? "BULLISH PRIVATE BANK" : isTradingMarket ? "THE TRADING MARKET" : "THE APARTMENT"} night={cycle.night}
       onRestart={() => void cycle.restart()} restartDisabled={cycle.settling || busy}
       profileDisabled={cycle.sleeping || cycle.settling || busy} />
     <WorldOptions canAct={cycle.canAct} sleeping={cycle.sleeping} />
     {cycle.message && <div className="bed-feedback" role="alert"><span>{cycle.message}</span>
       <button onClick={() => cycle.dismissMessage()} aria-label="Dismiss bed message">×</button></div>}
-    {!isBank && !isRoom && (isPhone ?
+    {!isBank && !isTradingMarket && !isRoom && (isPhone ?
       <section className="news-phone" aria-label="Stock news phone">
         <div className="phone-status"><span className="numeric">{cycle.night ? "22:30" : "09:41"}</span><span className="phone-camera" /><span className="battery-icon" /></div>
         <div className="phone-heading"><span><PixelIcon name="newspaper" /> BULLISH WIRE</span>

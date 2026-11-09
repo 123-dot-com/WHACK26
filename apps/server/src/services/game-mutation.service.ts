@@ -5,7 +5,7 @@ import { AppError } from "../lib/app-error.ts";
 import { prisma } from "../lib/prisma.ts";
 import { findGame, findRecordedRequest, incrementVersion, lockGame, recordRequest,
   type GameData, type Transaction } from "../repositories/game.repository.ts";
-import { toGameState } from "./game-state.mapper.ts";
+import { toGameState, toPublicReport } from "./game-state.mapper.ts";
 
 export async function mutateGame<T extends VersionRequest>(options: {
   gameId: string; key: string; operation: string; input: T; phases: GamePhase[];
@@ -22,7 +22,10 @@ export async function mutateGame<T extends VersionRequest>(options: {
       if (recorded.requestHash !== requestHash) {
         throw new AppError(409, "IDEMPOTENCY_CONFLICT", "This request key has already been used for a different action.");
       }
-      return recorded.responseBody as unknown as ApiSuccess<GameStateDTO>;
+      const body = recorded.responseBody as unknown as ApiSuccess<GameStateDTO>;
+      // Older saved responses may contain rankings from days one and two.
+      return { ...body, data: { ...body.data, reports: body.data.reports.map((report) =>
+        toPublicReport(report, body.data.phase === "FINISHED" && body.data.day === 3)) } };
     }
     const game = await findGame(tx, gameId);
     if (!game) throw new AppError(404, "NOT_FOUND", "Game not found.");

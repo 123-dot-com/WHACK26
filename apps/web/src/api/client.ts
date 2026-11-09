@@ -1,4 +1,4 @@
-import type { ApiResponse, ArbitragePuzzleDTO, ArbitrageRequest, BankTransferRequest, BorrowRequest,
+import type { ApiResponse, ArbitrageMarketDTO, ArbitrageRequest, BankTransferRequest, BorrowRequest,
   GameStateDTO, HealthDTO, LeaderboardDTO, NewsDTO, PredictionRequest, TradeRequest } from "@bullish/shared";
 
 export class ApiError extends Error {
@@ -47,7 +47,7 @@ export const getGame = (session: GameSession, signal?: AbortSignal) =>
   request<GameStateDTO>(`/games/${session.gameId}`, { session, signal });
 export const getNews = (session: GameSession, signal?: AbortSignal) =>
   request<NewsDTO>(`/games/${session.gameId}/news`, { session, signal });
-export const getPuzzle = (session: GameSession, signal?: AbortSignal) =>
-  request<ArbitragePuzzleDTO>(`/games/${session.gameId}/arbitrage`, { session, signal });
+export const getArbitrageMarket = (session: GameSession, signal?: AbortSignal) =>
+  request<ArbitrageMarketDTO>(`/games/${session.gameId}/arbitrage`, { session, signal });
 export const sendAction = (session: GameSession, type: GameAction["type"], input: unknown, key: string) =>
   request<GameStateDTO>(`/games/${session.gameId}/${type}`, { session, input, key });

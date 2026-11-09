@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1536" height="1024" viewBox="0 0 1536 1024" shape-rendering="crispEdges">
+  <defs>
+    <pattern id="floor" width="220" height="110" patternUnits="userSpaceOnUse"><rect width="220" height="110" fill="#a18b63"/><path d="M0 0H220V110H0Z" fill="none" stroke="#82704f" stroke-width="6"/><path d="M8 9H210" stroke="#b8a579" stroke-width="4"/></pattern>
+    <pattern id="wall" width="160" height="80" patternUnits="userSpaceOnUse"><rect width="160" height="80" fill="#c1ad80"/><path d="M0 0H160M0 40H160M80 0V40M0 40V80M160 40V80" stroke="#a69065" stroke-width="3"/></pattern>
+    <g id="shelf"><rect width="240" height="376" fill="#574e34" stroke="#68492e" stroke-width="14"/><path d="M0 122H240M0 244H240M0 366H240" stroke="#b98a51" stroke-width="20"/><g fill="#b89c60" stroke="#80613c" stroke-width="5"><rect x="22" y="47" width="65" height="62"/><rect x="110" y="27" width="89" height="82"/><rect x="28" y="157" width="41" height="74"/><rect x="92" y="177" width="103" height="54"/><rect x="26" y="280" width="78" height="73"/><rect x="126" y="265" width="74" height="88"/></g><path d="M33 71H77M121 55H189M102 196H185M36 303H94M136 292H190" stroke="#e5d09a" stroke-width="14"/></g>
+    <g id="lantern"><rect x="-6" y="0" width="12" height="70" fill="#534930"/><path d="M-30 70H30L38 100H-38Z" fill="#705d37"/><rect x="-26" y="100" width="52" height="60" fill="#e7cb7e" stroke="#705d37" stroke-width="7"/><path d="M0 102V158" stroke="#b38c45" stroke-width="6"/></g>
+  </defs>
+  <rect width="1536" height="1024" fill="#8e9069"/>
+  <rect y="205" width="1536" height="535" fill="url(#wall)"/>
+  <rect y="720" width="1536" height="304" fill="url(#floor)"/>
+  <path d="M0 0H1536V208H0Z" fill="#6a6546"/>
+  <path d="M0 208L384 45H1152L1536 208" fill="#8b8055" stroke="#4e4d35" stroke-width="22"/>
+  <path d="M220 0V1024M1316 0V1024" stroke="#6b5033" stroke-width="34"/>
+  <path d="M242 0V1024M1294 0V1024" stroke="#a2834f" stroke-width="12"/>
+  <path d="M0 234H1536" stroke="#5c4930" stroke-width="34"/>
+  <path d="M0 212H1536" stroke="#b19259" stroke-width="10"/>
+  <rect x="622" y="286" width="292" height="313" fill="#53654a" stroke="#8c7246" stroke-width="18"/>
+  <rect x="652" y="316" width="232" height="253" fill="#718066"/>
+  <path d="M768 316V569M652 441H884" stroke="#b6a16c" stroke-width="18"/>
+  <path d="M674 340H748V416H674ZM788 462H862V546H788Z" fill="#a3af84"/>
+  <use href="#shelf" x="-64" y="350"/><use href="#shelf" x="1360" y="350"/>
+  <use href="#lantern" x="380" y="200"/><use href="#lantern" x="1156" y="200"/>
+  <path d="M270 262Q768 420 1266 262" fill="none" stroke="#4d4930" stroke-width="6"/>
+  <g fill="#e4ca85" stroke="#80653b" stroke-width="4"><rect x="462" y="313" width="18" height="25"/><rect x="654" y="353" width="18" height="25"/><rect x="864" y="353" width="18" height="25"/><rect x="1056" y="313" width="18" height="25"/></g>
+  <g fill="#9e784a" stroke="#624b32" stroke-width="8"><rect x="33" y="817" width="134" height="113"/><rect x="127" y="860" width="140" height="108"/><rect x="1380" y="801" width="123" height="119"/></g>
+  <g stroke="#c29b60" stroke-width="11"><path d="M41 852H158M41 895H158M135 894H258M135 936H258M1388 840H1495M1388 885H1495"/></g>
+  <rect x="440" y="850" width="656" height="90" fill="#5e5136" opacity=".22"/>
+</svg>

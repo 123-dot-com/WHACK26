@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { calculateArbitrage, createPuzzle } from "../engines/arbitrage.engine.ts";
 import { calculateInterest, calculateTransfer } from "../engines/bank.engine.ts";
 import { simulateCrowd } from "../engines/crowd.engine.ts";
 import { simulateMarket } from "../engines/market.engine.ts";
@@ -34,13 +33,6 @@ describe("pure financial calculations", () => {
     expect(calculateInterest(510_000, 200)).toBe(10_200);
     expect(() => calculateTransfer(100, 510_000, 1, "DEPOSIT", 500_000)).toThrow("deposit limit");
     expect(calculateTransfer(0, 510_000, 510_000, "WITHDRAW", 500_000)).toEqual({ cashPence: 510_000, savingsPence: 0 });
-  });
-  it("settles both arbitrage routes and checks gross purchase cost", () => {
-    const puzzle = createPuzzle(1, false);
-    const input = { puzzleId: puzzle.puzzleId, route: "BUY_BUNDLE_SELL_UNITS" as const, quantity: 1, expectedVersion: 0 };
-    expect(calculateArbitrage(puzzle, input, 10_000)).toEqual({ costPence: 6900, revenuePence: 7200, profitPence: 300, cashPence: 10_300 });
-    expect(calculateArbitrage(puzzle, { ...input, route: "BUY_UNITS_SELL_BUNDLE" }, 10_000).profitPence).toBe(-700);
-    expect(() => calculateArbitrage(puzzle, input, 6899)).toThrow("full purchase cost");
   });
 });
 

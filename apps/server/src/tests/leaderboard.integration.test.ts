@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { ApiResponse, GameStateDTO, LeaderboardDTO } from "@bullish/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { startTestServer } from "./helpers/test-server.ts";
+import { fetchArbitrageTrade } from "./helpers/arbitrage.ts";
 
 let server: Awaited<ReturnType<typeof startTestServer>>;
 beforeAll(async () => { server = await startTestServer(); });
@@ -29,6 +30,9 @@ async function game() {
   let current: GameStateDTO = created;
   return { id, token, state: () => current,
     board: async () => success(await request<LeaderboardDTO>(`/${id}/leaderboard`, token)),
+    locked: async () => expect(await request<LeaderboardDTO>(`/${id}/leaderboard`, token))
+      .toMatchObject({ status: 409, body: { success: false, error: { code: "LEADERBOARD_LOCKED" } } }),
+    load: async () => success(await request<GameStateDTO>(`/${id}`, token)),
     send: async (action: string, payload: Record<string, unknown> = {}) => {
       current = success(await request<GameStateDTO>(`/${id}/${action}`, token,
         { ...payload, expectedVersion: current.version }, randomUUID()));
@@ -37,72 +41,110 @@ async function game() {
   };
 }
 
-describe("wealth leaderboard over HTTP and PostgreSQL", () => {
-  it("requires the session token and starts with 101 equally wealthy investors", async () => {
+async function finish(g: Awaited<ReturnType<typeof game>>) {
+  while (g.state().phase !== "FINISHED") {
+    if (g.state().phase === "REPORT") await g.send("next-day");
+    if (g.state().phase === "BRIEFING") await g.send("open-market");
+    await g.send("prediction", { direction: "NEUTRAL" });
+    await g.send("end-day");
+  }
+}
+
+describe("final wealth leaderboard over HTTP and PostgreSQL", () => {
+  it("requires the owning token and keeps rankings locked in a new game", async () => {
     const g = await game(), other = await game();
     expect((await request(`/${g.id}/leaderboard`)).status).toBe(401);
     expect((await request(`/${g.id}/leaderboard`, other.token)).status).toBe(403);
-    const board = await g.board();
-    expect(board).toMatchObject({ day: 1, settledDay: 0, totalParticipants: 101,
-      player: { rank: 1, netWorthPence: 1_000_000 } });
-    expect(board.entries).toHaveLength(10);
-    expect(board.entries.every((entry) => entry.netWorthPence === 1_000_000)).toBe(true);
-    expect(await g.board()).toEqual(board);
-    expect((await server.prisma.gameSession.findUniqueOrThrow({ where: { id: g.id } })).version).toBe(0);
+    await g.locked();
+    expect((await g.load()).version).toBe(0);
   });
 
-  it("uses the player's live cash, savings, share values and full debt balance", async () => {
+  it("hides rankings in briefing, trading and early reports, then reveals only the day-three final ranking", async () => {
+    const g = await game();
+    for (let day = 1; day <= 3; day++) {
+      await g.locked();
+      await g.send("open-market");
+      await g.locked();
+      await g.send("prediction", { direction: "BULLISH" });
+      await g.send("end-day");
+      const report = g.state().reports[day - 1];
+      expect(report).not.toHaveProperty("botPortfolios");
+      const stored = await server.prisma.dailyReport.findUniqueOrThrow({ where: { gameId_day: { gameId: g.id, day } } });
+      expect((stored.details as { botPortfolios: unknown[] }).botPortfolios).toHaveLength(100);
+      if (day < 3) {
+        expect(report).not.toHaveProperty("leaderboard");
+        expect(success(await request(`/${g.id}/reports/${day}`, g.token))).not.toHaveProperty("leaderboard");
+        await g.locked();
+        await g.send("next-day");
+      }
+    }
+    const board = await g.board();
+    expect(board).toMatchObject({ day: 3, settledDay: 3, totalParticipants: 101 });
+    expect(board.entries).toHaveLength(10);
+    expect(board.player.netWorthPence).toBe(g.state().netWorthPence);
+    expect(g.state().reports[2].leaderboard).toEqual(board);
+    expect((await g.load()).reports.slice(0, 2).every((report) => !("leaderboard" in report))).toBe(true);
+    expect(await g.board()).toEqual(board);
+  });
+
+  it("uses final cash, savings, marked share values and the full outstanding debt balance", async () => {
     const g = await game();
     await g.send("open-market");
     await g.send("bank/deposit", { amountPence: 300_000 });
     await g.send("trades", { stockId: "NOVA", side: "BUY", quantity: 20 });
     await g.send("bank/loans/borrow", { amountPence: 500_000 });
-    expect((await g.board()).player).toMatchObject({ cashPence: 1_000_000, savingsPence: 300_000,
-      stockValuePence: 200_000, grossAssetsPence: 1_500_000, debtPence: 500_000, netWorthPence: 1_000_000 });
-    await g.send("arbitrage/execute", { puzzleId: "OIL-D1", route: "BUY_BUNDLE_SELL_UNITS", quantity: 1 });
-    expect((await g.board()).player.netWorthPence).toBe(1_000_300);
-    await g.send("bank/loans/repay");
-    const board = await g.board();
-    expect(board.player.netWorthPence).toBe(g.state().netWorthPence);
-    expect(board.player).toMatchObject({ debtPence: 0, netWorthPence: 975_300, rank: 101 });
-    await g.send("prediction", { direction: "NEUTRAL" });
-    await g.send("end-day");
-    const closed = await g.board();
-    expect(closed.player.netWorthPence).toBe(g.state().netWorthPence);
-    expect(closed.player.stockValuePence).toBe(20 * g.state().stocks.find((stock) => stock.id === "NOVA")!.pricePence);
+    const trade = await fetchArbitrageTrade(server.baseUrl, g.id, g.token);
+    await g.send("arbitrage/execute", trade.input);
+    await g.locked();
+    await finish(g);
+    const board = await g.board(), state = g.state();
+    expect(board.player).toMatchObject({ cashPence: state.wallet.cashPence, savingsPence: state.wallet.savingsPence,
+      debtPence: state.loan.active!.balancePence, netWorthPence: state.netWorthPence });
+    expect(board.player.debtPence).toBeGreaterThan(500_000);
+    expect(board.player.stockValuePence).toBe(20 * state.stocks.find((stock) => stock.id === "NOVA")!.pricePence);
+    expect(board.player.grossAssetsPence - board.player.debtPence).toBe(state.netWorthPence);
   });
 
-  it("persists bot portfolios, snapshots daily rankings, and replays the same scenario after reset", async () => {
+  it("locks rankings again after reset and reproduces the same final outcome", async () => {
     const g = await game();
-    let first: LeaderboardDTO | undefined;
-    for (let day = 1; day <= 3; day++) {
-      await g.send("open-market");
-      await g.send("prediction", { direction: "BULLISH" });
-      await g.send("end-day");
-      const board = await g.board();
-      expect(board).toEqual(g.state().reports[day - 1].leaderboard);
-      expect(board.player.netWorthPence).toBe(g.state().netWorthPence);
-      expect(board).toMatchObject({ settledDay: day, totalParticipants: 101 });
-      expect(board.entries).toHaveLength(10);
-      if (day === 1) first = board;
-      expect(g.state().reports[0].leaderboard).toEqual(first);
-      expect(g.state().reports[day - 1]).not.toHaveProperty("botPortfolios");
-      const stored = await server.prisma.dailyReport.findUniqueOrThrow({ where: { gameId_day: { gameId: g.id, day } } });
-      expect((stored.details as { botPortfolios: unknown[] }).botPortfolios).toHaveLength(100);
-      expect(await g.board()).toEqual(board);
-      if (day < 3) await g.send("next-day");
-    }
+    await finish(g);
+    const expected = await g.board();
     await g.send("reset");
-    expect((await g.board()).player).toMatchObject({ rank: 1, netWorthPence: 1_000_000 });
-    expect(await server.prisma.dailyReport.count({ where: { gameId: g.id } })).toBe(0);
-    await g.send("open-market");
-    await g.send("prediction", { direction: "BULLISH" });
-    await g.send("end-day");
-    expect(await g.board()).toEqual(first);
+    await g.locked();
+    expect(g.state().reports).toEqual([]);
+    await finish(g);
+    expect(await g.board()).toEqual(expected);
   });
 
-  it("does not advance bot finances twice for concurrent identical End Day requests", async () => {
+  it("removes early rankings from legacy report data and saved response replays", async () => {
     const g = await game();
+    await g.send("open-market");
+    await g.send("prediction", { direction: "NEUTRAL" });
+    const input = { expectedVersion: g.state().version }, key = randomUUID();
+    const response = await request<GameStateDTO>(`/${g.id}/end-day`, g.token, input, key);
+    const closed = success(response);
+    const earlyRanking = { day: 1, settledDay: 1, totalParticipants: 101, entries: [], player: { rank: 1 } };
+    const stored = await server.prisma.dailyReport.findUniqueOrThrow({ where: { gameId_day: { gameId: g.id, day: 1 } } });
+    await server.prisma.dailyReport.update({ where: { gameId_day: { gameId: g.id, day: 1 } },
+      data: { details: JSON.parse(JSON.stringify({ ...(stored.details as object), leaderboard: earlyRanking })) } });
+    await server.prisma.idempotencyRecord.update({ where: { gameId_key: { gameId: g.id, key } },
+      data: { responseBody: JSON.parse(JSON.stringify({ ...response.body, data: { ...closed,
+        reports: [{ ...closed.reports[0], leaderboard: earlyRanking }] } })) } });
+    expect((await g.load()).reports[0]).not.toHaveProperty("leaderboard");
+    expect(success(await request(`/${g.id}/reports/1`, g.token))).not.toHaveProperty("leaderboard");
+    const replayed = success(await request<GameStateDTO>(`/${g.id}/end-day`, g.token, input, key));
+    expect(replayed.reports[0]).not.toHaveProperty("leaderboard");
+    await g.locked();
+  });
+
+  it("settles concurrent identical final End Day requests once", async () => {
+    const g = await game();
+    for (let day = 1; day < 3; day++) {
+      await g.send("open-market");
+      await g.send("prediction", { direction: "NEUTRAL" });
+      await g.send("end-day");
+      await g.send("next-day");
+    }
     await g.send("open-market");
     await g.send("prediction", { direction: "NEUTRAL" });
     const input = { expectedVersion: g.state().version }, key = randomUUID();
@@ -110,21 +152,22 @@ describe("wealth leaderboard over HTTP and PostgreSQL", () => {
       request<GameStateDTO>(`/${g.id}/end-day`, g.token, input, key)]);
     const closed = success(results[0]);
     expect(success(results[1])).toEqual(closed);
-    expect(await g.board()).toEqual(closed.reports[0].leaderboard);
-    expect(await server.prisma.dailyReport.count({ where: { gameId: g.id } })).toBe(1);
+    expect(await g.board()).toEqual(closed.reports[2].leaderboard);
+    expect(await server.prisma.dailyReport.count({ where: { gameId: g.id } })).toBe(3);
   });
 
-  it("reconstructs older games without bot snapshots and leaves GET requests read-only", async () => {
+  it("reconstructs finished legacy games without bot snapshots and keeps GET read-only", async () => {
     const g = await game();
-    await g.send("open-market");
-    await g.send("prediction", { direction: "BULLISH" });
-    await g.send("end-day");
+    await finish(g);
     const expected = await g.board();
-    const stored = await server.prisma.dailyReport.findUniqueOrThrow({ where: { gameId_day: { gameId: g.id, day: 1 } } });
-    const { botPortfolios: _bots, leaderboard: _board, ...legacy } = stored.details as Record<string, unknown>;
-    await server.prisma.dailyReport.update({ where: { gameId_day: { gameId: g.id, day: 1 } }, data: { details: JSON.parse(JSON.stringify(legacy)) } });
+    const reports = await server.prisma.dailyReport.findMany({ where: { gameId: g.id } });
+    for (const stored of reports) {
+      const { botPortfolios: _bots, leaderboard: _board, ...legacy } = stored.details as Record<string, unknown>;
+      await server.prisma.dailyReport.update({ where: { gameId_day: { gameId: g.id, day: stored.day } },
+        data: { details: JSON.parse(JSON.stringify(legacy)) } });
+    }
     expect(await g.board()).toEqual(expected);
-    const reloaded = await server.prisma.dailyReport.findUniqueOrThrow({ where: { gameId_day: { gameId: g.id, day: 1 } } });
-    expect(reloaded.details).not.toHaveProperty("botPortfolios");
+    const reloaded = await server.prisma.dailyReport.findMany({ where: { gameId: g.id } });
+    expect(reloaded.every((report) => !("botPortfolios" in (report.details as object)))).toBe(true);
   });
 });

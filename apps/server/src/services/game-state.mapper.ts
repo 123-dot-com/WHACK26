@@ -2,6 +2,12 @@ import type { DailyReportDTO, GameStateDTO, StockId } from "@bullish/shared";
 import { LOAN_DAILY_INTEREST_BPS, LOAN_MAX_PENCE } from "@bullish/shared";
 import { repaymentQuote } from "../engines/loan.engine.ts";
 import type { GameData } from "../repositories/game.repository.ts";
+import { DAILY_STALL_COUNT } from "../engines/arbitrage.engine.ts";
+
+export function toPublicReport(value: unknown, showFinalRanking: boolean): DailyReportDTO {
+    const { botPortfolios: _bots, leaderboard, ...report } = value as DailyReportDTO & { botPortfolios?: unknown };
+    return showFinalRanking && report.day === 3 && leaderboard ? { ...report, leaderboard } : report;
+}
 
 export function toGameState(game: GameData): GameStateDTO {
     const wallet = game.wallet;
@@ -53,6 +59,7 @@ export function toGameState(game: GameData): GameStateDTO {
 
     const activeLoan = game.loans.find((loan) => loan.status === "ACTIVE");
     netWorthPence -= activeLoan?.balancePence ?? 0;
+    const completedPuzzleIds = game.arbitrageAttempts.filter((attempt) => attempt.day === game.day).map((attempt) => attempt.puzzleId);
 
     return {
         gameId: game.id,
@@ -67,7 +74,8 @@ export function toGameState(game: GameData): GameStateDTO {
         },
         stocks,
         prediction,
-        arbitrage: { completedToday: game.arbitrageAttempts.some((attempt) => attempt.day === game.day) },
+        arbitrage: { completedToday: completedPuzzleIds.length >= DAILY_STALL_COUNT,
+            completedPuzzleIds, completedCount: completedPuzzleIds.length, dailyLimit: DAILY_STALL_COUNT },
         loan: {
             maxPrincipalPence: LOAN_MAX_PENCE,
             dailyInterestBps: LOAN_DAILY_INTEREST_BPS,
@@ -81,10 +89,7 @@ export function toGameState(game: GameData): GameStateDTO {
             } : null,
         },
         netWorthPence,
-        reports: game.reports.map((report) => {
-            // Full bot portfolios stay on the server; clients receive the top ten snapshot.
-            const { botPortfolios: _bots, ...details } = report.details as unknown as DailyReportDTO & { botPortfolios?: unknown };
-            return details;
-        }),
+        reports: game.reports.map((report) => toPublicReport(report.details,
+            game.phase === "FINISHED" && game.day === 3 && game.lastSimulatedDay === 3)),
     };
 }

@@ -153,7 +153,15 @@ The routes in README section 7 are implemented. Financial actions, End Day,
 Next Day and Reset require `Idempotency-Key` (1–128 ASCII letters, digits or
 `._:-`) and a JSON `expectedVersion`. A successful response contains the updated
 GameStateDTO. The arbitrage response includes the settled wallet and
-`arbitrage.completedToday`; the breakdown is persisted and shown in the report.
+`arbitrage.completedCount`, `completedPuzzleIds` and `dailyLimit` (3).
+`completedToday` becomes true after three trades. The market offers three daily
+stalls from a 60-problem catalog, each with two to four package sizes and one
+trade per stall. `GET /api/games/:gameId/arbitrage` returns the three posted price
+lists. Execution accepts `{ puzzleId, orders: [{ itemId, buyQuantity, sellQuantity }], expectedVersion }`.
+The total base units bought and sold must match; purchases must be funded before
+sale proceeds. The market screen leaves the arithmetic to the player; settled
+results are persisted and summed in the daily report. Apply the new migration
+with `npm.cmd run db:deploy` when updating an existing local database.
 GET game includes historical report snapshots in `reports`; individual reports
 are also available at `GET /api/games/:gameId/reports/:day`.
 

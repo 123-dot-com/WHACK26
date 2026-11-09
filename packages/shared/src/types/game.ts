@@ -24,7 +24,7 @@ export interface GameStateDTO {
     stockId: StockId;
     direction: PredictionDirection;
   } | null;
-  arbitrage: { completedToday: boolean };
+  arbitrage: { completedToday: boolean; completedPuzzleIds: string[]; completedCount: number; dailyLimit: number };
   loan: {
     maxPrincipalPence: number;
     dailyInterestBps: number;
@@ -126,16 +126,27 @@ export interface DailyReportDTO {
   netWorthPence: number;
   exposurePct: number;
   takeaway: string;
-  // Optional for reports saved before the wealth leaderboard was introduced.
+  // Only exposed on the final day-three report after the game has finished.
   leaderboard?: LeaderboardDTO;
 }
 
 export interface ArbitragePuzzleDTO {
   puzzleId: string;
-  bundleSize: number;
-  unitBuyPence: number;
-  unitSellPence: number;
-  bundleBuyPence: number;
-  bundleSellPence: number;
+  title: string;
+  unitName: string;
+  items: ArbitrageItemDTO[];
   completedToday: boolean;
+}
+
+export interface ArbitrageItemDTO {
+  id: string;
+  name: string;
+  units: number;
+  buyPricePence: number;
+  sellPricePence: number;
+}
+
+export interface ArbitrageMarketDTO {
+  day: number;
+  stalls: ArbitragePuzzleDTO[];
 }

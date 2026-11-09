@@ -41,7 +41,8 @@ export async function endDay(gameId: string, input: VersionRequest, key: string)
         return simulateMarket({ seed: snapshot.seed, day: snapshot.day, currentPricePence, volatility: stock.volatility, crowd });
       }).sort((a, b) => a.stockId.localeCompare(b.stockId));
       const interest = calculateInterest(state.wallet.savingsPence, state.wallet.monthlyInterestBps);
-      const arbitrage = snapshot.arbitrageAttempts.find((item) => item.day === snapshot.day)?.profitPence ?? 0;
+      const arbitrage = snapshot.arbitrageAttempts.filter((item) => item.day === snapshot.day)
+        .reduce((sum, item) => sum + item.profitPence, 0);
       const activeLoan = snapshot.loans.find((loan) => loan.status === "ACTIVE") ?? null;
       loanAccrual = accrueLoan(activeLoan, snapshot.day, snapshot.loanLockedThroughDay);
       const earlierCharges = snapshot.loanEvents.filter((event) => event.day === snapshot.day
@@ -51,7 +52,7 @@ export async function endDay(gameId: string, input: VersionRequest, key: string)
         accruedInterestPence: loanAccrual?.interestPence ?? 0,
         balancePence: loanAccrual?.balancePence ?? activeLoan?.balancePence ?? 0,
       }, news.category);
-      simulation.leaderboard = buildLeaderboard(botPortfolios,
+      if (snapshot.day === 3) simulation.leaderboard = buildLeaderboard(botPortfolios,
         results.map((result) => ({ id: result.stockId, pricePence: result.nextPricePence })), {
           cashPence: state.wallet.cashPence,
           savingsPence: state.wallet.savingsPence + interest,

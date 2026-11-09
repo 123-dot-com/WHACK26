@@ -32,8 +32,11 @@ export const predictionRequestSchema = z.strictObject({
 export const versionRequestSchema = z.strictObject({ expectedVersion });
 export const arbitrageRequestSchema = z.strictObject({
   puzzleId: z.string().min(1).max(32),
-  route: z.enum(["BUY_BUNDLE_SELL_UNITS", "BUY_UNITS_SELL_BUNDLE"]),
-  quantity: positiveInteger,
+  orders: z.array(z.strictObject({
+    itemId: z.string().min(1).max(32),
+    buyQuantity: z.number().int().min(0).max(2_147_483_647),
+    sellQuantity: z.number().int().min(0).max(2_147_483_647),
+  })).min(1).max(4),
   expectedVersion,
 });
 export const idempotencyKeySchema = z.string().min(1).max(128)

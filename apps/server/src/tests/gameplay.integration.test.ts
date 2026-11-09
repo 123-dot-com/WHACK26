@@ -3,6 +3,7 @@ import type { ApiResponse, GameStateDTO, NewsDTO } from "@bullish/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { startTestServer } from "./helpers/test-server.ts";
 import { simulateCrowd } from "../engines/crowd.engine.ts";
+import { fetchArbitrageTrade } from "./helpers/arbitrage.ts";
 
 let server: Awaited<ReturnType<typeof startTestServer>>;
 beforeAll(async () => { server = await startTestServer(); });
@@ -116,7 +117,7 @@ describe("financial APIs with real PostgreSQL", () => {
     await server.prisma.gameSession.update({ where: { id: g.id }, data: { phase } });
     for (const [action, payload] of [
       ["trades", buy], ["bank/deposit", { amountPence: 100 }],
-      ["arbitrage/execute", { puzzleId: "OIL-D1", route: "BUY_BUNDLE_SELL_UNITS", quantity: 1 }],
+      ["arbitrage/execute", { puzzleId: "not-a-stall", orders: [{ itemId: "pack-1", buyQuantity: 1, sellQuantity: 1 }] }],
     ] as const) {
       expect(await g.send(action, payload)).toMatchObject({ status: 409, body: { error: { code: "INVALID_PHASE" } } });
     }
@@ -163,17 +164,19 @@ describe("financial APIs with real PostgreSQL", () => {
     expect(await g.send("bank/withdraw", { amountPence: 150_001 })).toMatchObject({ status: 422, body: { error: { code: "INSUFFICIENT_SAVINGS" } } });
     expect(await g.load()).toEqual(withdrawn);
   });
-  it("settles arbitrage once and enforces full purchase cost", async () => {
+  it("settles each arbitrage stall once and enforces full purchase cost", async () => {
     const g = await game();
-    const payload = { puzzleId: "OIL-D1", route: "BUY_BUNDLE_SELL_UNITS", quantity: 1 };
+    const trade = await fetchArbitrageTrade(server.baseUrl, g.id, g.token);
+    const payload = trade.input;
     const result = state(await g.send("arbitrage/execute", payload));
-    expect(result.wallet.cashPence).toBe(1_000_300);
-    expect(result.arbitrage.completedToday).toBe(true);
+    expect(result.wallet.cashPence).toBe(1_000_000 + trade.profitPence);
+    expect(result.arbitrage).toMatchObject({ completedToday: false, completedCount: 1, dailyLimit: 3 });
     expect(await g.send("arbitrage/execute", payload)).toMatchObject({ status: 409, body: { error: { code: "ARBITRAGE_ALREADY_COMPLETED" } } });
     const poor = await game();
     state(await poor.send("trades", { ...buy, quantity: 99 }));
     state(await poor.send("trades", { stockId: "GREEN", side: "BUY", quantity: 1 }));
-    expect(await poor.send("arbitrage/execute", payload)).toMatchObject({ status: 422, body: { error: { code: "INSUFFICIENT_CASH" } } });
+    const poorTrade = await fetchArbitrageTrade(server.baseUrl, poor.id, poor.token, 1000);
+    expect(await poor.send("arbitrage/execute", poorTrade.input)).toMatchObject({ status: 422, body: { error: { code: "INSUFFICIENT_CASH" } } });
   });
   it("rolls back cash, holdings, version and the request record when a trade write fails", async () => {
     const g = await game();
@@ -254,7 +257,8 @@ describe("three-day progression and reports", () => {
     expect(await g.send("end-day")).toMatchObject({ status: 422, body: { error: { code: "PREDICTION_REQUIRED" } } });
     state(await g.send("trades", buy));
     state(await g.send("bank/deposit", { amountPence: 200_000 }));
-    state(await g.send("arbitrage/execute", { puzzleId: "OIL-D1", route: "BUY_BUNDLE_SELL_UNITS", quantity: 1 }));
+    const trade = await fetchArbitrageTrade(server.baseUrl, g.id, g.token);
+    state(await g.send("arbitrage/execute", trade.input));
     state(await g.send("prediction", { direction: "BULLISH" }));
     const key = randomUUID();
     const payload = { expectedVersion: g.current().version };
@@ -263,9 +267,9 @@ describe("three-day progression and reports", () => {
     const report = closed.reports[0];
     expect(closed.phase).toBe("REPORT");
     expect(report.interestPence).toBe(4000);
-    expect(report.arbitragePnlPence).toBe(300);
+    expect(report.arbitragePnlPence).toBe(trade.profitPence);
     expect(closed.wallet.savingsPence).toBe(204_000);
-    expect(closed.netWorthPence).toBe(1_000_000 + report.marketPnlPence + 4000 + 300);
+    expect(closed.netWorthPence).toBe(1_000_000 + report.marketPnlPence + 4000 + trade.profitPence);
     expect(report.netWorthPence).toBe(closed.netWorthPence);
     expect(report.marketPnlPence).toBe(20 * (report.marketResults.find((r) => r.stockId === "NOVA")!.nextPricePence - 10_000));
     expect(await request(`/${g.id}/end-day`, payload, g.token, key)).toEqual(result);

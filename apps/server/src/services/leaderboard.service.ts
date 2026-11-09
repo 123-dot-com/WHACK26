@@ -9,6 +9,9 @@ export function getLeaderboard(gameId: string) {
   return prisma.$transaction(async (tx) => {
     const game = await findGame(tx, gameId);
     if (!game) throw new AppError(404, "NOT_FOUND", "Game not found.");
+    if (game.phase !== "FINISHED" || game.day !== 3 || game.lastSimulatedDay !== 3) {
+      throw new AppError(409, "LEADERBOARD_LOCKED", "Finish all three days to view the wealth rankings.");
+    }
     const state = toGameState(game);
     const leaderboard = buildLeaderboard(restoreBotPortfolios(game), state.stocks, {
       cashPence: state.wallet.cashPence,

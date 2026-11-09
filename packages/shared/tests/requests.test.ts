@@ -3,6 +3,7 @@ import {
   bankTransferRequestSchema,
   predictionRequestSchema,
   tradeRequestSchema,
+  arbitrageRequestSchema,
 } from "../src/index.js";
 
 const trade = {
@@ -44,6 +45,23 @@ describe("financial request boundaries", () => {
   it("accepts a transfer specified in integer pence", () => {
     expect(bankTransferRequestSchema.parse({ amountPence: 50000, expectedVersion: 0 }))
       .toEqual({ amountPence: 50000, expectedVersion: 0 });
+  });
+});
+
+describe("arbitrage basket requests", () => {
+  const input = { puzzleId: "water-D1", expectedVersion: 0,
+    orders: [{ itemId: "pack-6", buyQuantity: 2, sellQuantity: 0 }, { itemId: "pack-4", buyQuantity: 0, sellQuantity: 3 }] };
+  it("accepts independent nonnegative whole buy and sell quantities", () => {
+    expect(arbitrageRequestSchema.parse(input)).toEqual(input);
+  });
+  it.each([-1, 1.5, "2", 2_147_483_648])("rejects invalid buy quantity %s", (buyQuantity) => {
+    expect(arbitrageRequestSchema.safeParse({ ...input, orders: [{ itemId: "pack-1", buyQuantity, sellQuantity: 0 }] }).success).toBe(false);
+  });
+  it("rejects empty baskets, more than four lines and client-supplied prices", () => {
+    expect(arbitrageRequestSchema.safeParse({ ...input, orders: [] }).success).toBe(false);
+    expect(arbitrageRequestSchema.safeParse({ ...input, orders: Array(5).fill(input.orders[0]) }).success).toBe(false);
+    expect(arbitrageRequestSchema.safeParse({ ...input, orders: [{ ...input.orders[0], buyPricePence: 1 }] }).success).toBe(false);
+    expect(arbitrageRequestSchema.safeParse({ ...input, profitPence: 1000 }).success).toBe(false);
   });
 });
 

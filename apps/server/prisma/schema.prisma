@@ -156,9 +156,10 @@ model ArbitrageAttempt {
   costPence    Int
   revenuePence Int
   profitPence  Int
+  orders       Json?
   game         GameSession @relation(fields: [gameId], references: [id], onDelete: Cascade)
 
-  @@id([gameId, day])
+  @@id([gameId, day, puzzleId])
 }
 
 model DailyReport {

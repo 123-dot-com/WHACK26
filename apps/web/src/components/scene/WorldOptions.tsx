@@ -4,7 +4,7 @@ import PixelIcon, { type PixelIconName } from "../pixel/PixelIcon";
 
 const activities: Array<{ label: string; path: string; icon: PixelIconName }> = [
   { label: "Stocks", path: "/Market", icon: "market" },
-  { label: "Arbitrage", path: "/Arbitrage", icon: "oil" },
+  { label: "Arbitrage", path: "/Arbitrage", icon: "bag" },
   { label: "Bank", path: "/Bank", icon: "bank" },
 ];
 
@@ -21,8 +21,8 @@ export default function WorldOptions({ canAct, sleeping }: { canAct: boolean; sl
         if (game.phase === "BRIEFING") { const opened = await act({ type: "open-market" }); if (!opened) return; }
         navigate(item.path);
       }}><PixelIcon name={item.icon} /><span>{item.label}</span></button>)}
-    <button disabled={busy} aria-pressed={location.pathname === "/Leaderboard"}
-      onClick={() => navigate("/Leaderboard")}><PixelIcon name="star" /><span>Ranking</span></button>
+    {game.phase === "FINISHED" && game.day === 3 && <button disabled={busy} aria-pressed={location.pathname === "/Leaderboard"}
+      onClick={() => navigate("/Leaderboard")}><PixelIcon name="star" /><span>Ranking</span></button>}
     {game.reports.length > 0 && <button disabled={busy} aria-pressed={location.pathname === "/DailyReport"}
       onClick={() => navigate("/DailyReport")}><PixelIcon name="flag" /><span>Reports</span></button>}
   </nav>;
