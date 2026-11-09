@@ -1,8 +1,9 @@
+import { randomInt } from "node:crypto";
 import { prisma } from "../lib/prisma.ts";
 import { createAccessToken, hashToken } from "../lib/token.ts"
 import { toGameState } from "./game-state.mapper.ts";
 import { gameStateInclude } from "../repositories/game.repository.ts";
-import { dailyNews } from "../data/news.ts";
+import { getDailyNews } from "../data/news.ts";
 import { AppError } from "../lib/app-error.ts";
 export async function createGame() {
     const accessToken = createAccessToken();
@@ -19,6 +20,7 @@ export async function createGame() {
     }
     const game = await prisma.gameSession.create({
         data: {
+            seed: randomInt(0, 2_147_483_648),
             wallet: {
                 create: {},
             },
@@ -67,6 +69,7 @@ export async function getNews(gameId: string) {
     },
     select: {
       day: true,
+      seed: true,
       version: true,
     },
   });
@@ -75,11 +78,7 @@ export async function getNews(gameId: string) {
     return null;
   }
 
-  const news = dailyNews.find((item) => item.day === game.day);
-
-  if (!news) {
-    throw new Error("News scenario is missing.");
-  }
+  const news = getDailyNews(game.seed, game.day);
 
   return {
     news,

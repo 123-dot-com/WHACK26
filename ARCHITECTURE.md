@@ -49,6 +49,14 @@ independent seeded random streams for agent and market noise. News influences
 votes; it is not added to prices a second time. Report attribution distinguishes
 crowd, noise, the 10% cap and whole-penny rounding.
 
+Each new game stores a random seed. Its three daily headlines are drawn without
+replacement from 30 templates (10 good, 10 bad, 10 neutral). News selection,
+numeric placeholders and prediction focus use separate deterministic streams,
+so reads, predictions, settlement and Reset agree. Company news affects that
+stock, technology news including Orion Cloud affects NOVA, and general market
+news affects all three stocks. Neutral headlines retain their small signed
+impacts. Briefing copy and report takeaways follow the selected category.
+
 At settlement, lock the session and recheck the version/phase. Persist closing
 prices, one monthly savings-interest credit and a historical report snapshot in
 the same transaction. Unique constraints protect prices, reports, interest and

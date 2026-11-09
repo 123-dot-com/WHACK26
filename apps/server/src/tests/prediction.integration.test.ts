@@ -1,4 +1,4 @@
-import type { ApiResponse, ApiSuccess, GameStateDTO } from "@bullish/shared";
+import type { ApiResponse, ApiSuccess, GameStateDTO, NewsDTO } from "@bullish/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { startTestServer } from "./helpers/test-server.ts";
 
@@ -52,7 +52,18 @@ async function createGame() {
   const result = success(await request("POST", "/api/games", { body: {} }), 201);
   const token = result.data.accessToken;
   if (!token) throw new Error("Create Game must return an access token.");
-  return { gameId: result.data.gameId, token, initial: result.data };
+  const news = await getNews(result.data.gameId, token);
+  return { gameId: result.data.gameId, token, initial: result.data, news };
+}
+
+async function getNews(gameId: string, token: string) {
+  const response = await fetch(`${fixture().baseUrl}/api/games/${gameId}/news`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  expect(response.status).toBe(200);
+  const body = await response.json() as ApiResponse<NewsDTO>;
+  if (!body.success) throw new Error(body.error.message);
+  return body.data;
 }
 
 function predict(gameId: string, token: string, direction: string, expectedVersion: number) {
@@ -73,7 +84,7 @@ describe("daily predictions over HTTP and PostgreSQL", () => {
       data: {
         version: 1,
         phase: "BRIEFING",
-        prediction: { stockId: "NOVA", direction: "BULLISH" },
+        prediction: { stockId: game.news.focusStockId, direction: "BULLISH" },
       },
     });
     expect(saved.data.wallet).toEqual(game.initial.wallet);
@@ -107,12 +118,12 @@ describe("daily predictions over HTTP and PostgreSQL", () => {
 
     expect(changed.data).toMatchObject({
       version: 3,
-      prediction: { stockId: "NOVA", direction: "BEARISH" },
+      prediction: { stockId: game.news.focusStockId, direction: "BEARISH" },
       netWorthPence: game.initial.netWorthPence,
     });
     const rows = await fixture().prisma.prediction.findMany({ where: { gameId: game.gameId } });
     expect(rows).toHaveLength(1);
-    expect(rows[0]).toMatchObject({ day: 1, stockId: "NOVA", direction: "BEARISH" });
+    expect(rows[0]).toMatchObject({ day: 1, stockId: game.news.focusStockId, direction: "BEARISH" });
   });
 
   it("rejects stale requests without changing the saved choice or version", async () => {
@@ -198,7 +209,7 @@ describe("daily predictions over HTTP and PostgreSQL", () => {
       for (let i = 0; i < 12; i++) {
         const { data } = success(await request("GET", `/api/games/${game.gameId}`, { token: game.token }));
         const expected = data.version === 0 ? null : {
-          stockId: "NOVA",
+          stockId: game.news.focusStockId,
           direction: data.version % 2 === 1 ? "BULLISH" : "BEARISH",
         };
         expect(data.prediction).toEqual(expected);
@@ -227,8 +238,9 @@ describe("daily predictions over HTTP and PostgreSQL", () => {
 
     const morning = success(await request("GET", `/api/games/${game.gameId}`, { token: game.token }));
     expect(morning.data.prediction).toBeNull();
+    const news = await getNews(game.gameId, game.token);
     const saved = success(await predict(game.gameId, game.token, "NEUTRAL", 2));
-    expect(saved.data.prediction).toEqual({ stockId: "NOVA", direction: "NEUTRAL" });
+    expect(saved.data.prediction).toEqual({ stockId: news.focusStockId, direction: "NEUTRAL" });
     expect(await fixture().prisma.prediction.count({ where: { gameId: game.gameId } })).toBe(2);
   });
 

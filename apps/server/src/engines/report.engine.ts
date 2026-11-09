@@ -1,4 +1,10 @@
-import type { DailyReportDTO, GameStateDTO, MarketResult, PredictionDirection } from "@bullish/shared";
+import type { DailyReportDTO, GameStateDTO, MarketResult, NewsDTO, PredictionDirection } from "@bullish/shared";
+
+const takeaways = {
+  GOOD: "Positive news can create buying pressure. Momentum and market noise can still change the outcome.",
+  BAD: "Negative news can create selling pressure. Stock exposure creates both opportunities and losses; savings provide liquidity and steady interest.",
+  NEUTRAL: "Quiet headlines do not guarantee flat prices. Momentum, investor bias and market noise can still move the market.",
+};
 
 export function classifyReturn(previousPricePence: number, nextPricePence: number): PredictionDirection {
   const difference = (nextPricePence - previousPricePence) * 100;
@@ -8,6 +14,7 @@ export function classifyReturn(previousPricePence: number, nextPricePence: numbe
 export function buildDailyReport(
   game: GameStateDTO, marketResults: MarketResult[], interestPence: number, arbitragePnlPence: number,
   loan: { interestPence: number; accruedInterestPence: number; balancePence: number } = { interestPence: 0, accruedInterestPence: 0, balancePence: 0 },
+  newsCategory: NewsDTO["category"] = "NEUTRAL",
 ): DailyReportDTO {
   if (!game.prediction) throw new Error("A prediction is required to build a report.");
   const focused = marketResults.find((result) => result.stockId === game.prediction!.stockId);
@@ -27,8 +34,6 @@ export function buildDailyReport(
     // Arbitrage has already settled in the snapshot's cash: do not add it twice.
     netWorthPence: game.netWorthPence + marketPnlPence + interestPence - loan.accruedInterestPence,
     exposurePct: grossAssetsPence === 0 ? 0 : stockValue / grossAssetsPence * 100,
-    takeaway: game.day === 1 ? "Positive news can create buying pressure. A prediction and a portfolio decision have different consequences."
-      : game.day === 2 ? "Momentum can draw in FOMO traders. Yesterday's gain does not guarantee tomorrow's return."
-      : "A forecast cut can reverse sentiment. Stock exposure creates both opportunities and losses; savings provide liquidity and steady interest.",
+    takeaway: takeaways[newsCategory],
   };
 }

@@ -1,5 +1,5 @@
 import type { StockId, VersionRequest } from "@bullish/shared";
-import { dailyNews } from "../data/news.ts";
+import { getDailyNews } from "../data/news.ts";
 import { calculateInterest } from "../engines/bank.engine.ts";
 import { accrueLoan, type LoanAccrual } from "../engines/loan.engine.ts";
 import { persistLoanAccrual } from "../repositories/loan.repository.ts";
@@ -24,13 +24,13 @@ export async function endDay(gameId: string, input: VersionRequest, key: string)
   if (snapshot && snapshot.phase === "TRADING" && snapshot.version === input.expectedVersion) {
     const state = toGameState(snapshot);
     if (state.prediction) {
-      const news = dailyNews.find((item) => item.day === snapshot.day)!;
+      const news = getDailyNews(snapshot.seed, snapshot.day);
       const results = snapshot.holdings.map(({ stock }) => {
         const currentPricePence = state.stocks.find((item) => item.id === stock.id)!.pricePence;
         const previous = snapshot.prices.find((item) => item.stockID === stock.id && item.day === Math.max(0, snapshot.lastSimulatedDay - 1))!;
         const momentum = snapshot.day === 1 ? 0 : clamp((currentPricePence / previous.pricePence - 1) / .1, -1, 1);
         const crowd = simulateCrowd({ seed: snapshot.seed, day: snapshot.day, stockId: stock.id as StockId,
-          newsSignal: stock.id === news.focusStockId ? news.impact : 0, momentum });
+          newsSignal: news.affectedStockIds.includes(stock.id as StockId) ? news.impact : 0, momentum });
         return simulateMarket({ seed: snapshot.seed, day: snapshot.day, currentPricePence, volatility: stock.volatility, crowd });
       }).sort((a, b) => a.stockId.localeCompare(b.stockId));
       const interest = calculateInterest(state.wallet.savingsPence, state.wallet.monthlyInterestBps);
@@ -43,7 +43,7 @@ export async function endDay(gameId: string, input: VersionRequest, key: string)
         interestPence: earlierCharges + (loanAccrual?.interestPence ?? 0),
         accruedInterestPence: loanAccrual?.interestPence ?? 0,
         balancePence: loanAccrual?.balancePence ?? activeLoan?.balancePence ?? 0,
-      });
+      }, news.category);
     }
   }
   return mutateGame({ gameId, key, operation: "end-day", input, phases: ["TRADING"],

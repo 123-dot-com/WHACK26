@@ -1,7 +1,8 @@
 import { randomUUID } from "node:crypto";
-import type { ApiResponse, GameStateDTO } from "@bullish/shared";
+import type { ApiResponse, GameStateDTO, NewsDTO } from "@bullish/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { startTestServer } from "./helpers/test-server.ts";
+import { simulateCrowd } from "../engines/crowd.engine.ts";
 
 let server: Awaited<ReturnType<typeof startTestServer>>;
 beforeAll(async () => { server = await startTestServer(); });
@@ -37,7 +38,48 @@ async function game(open = true) {
   return { id, token, send, current: () => current,
     load: async () => state(await request(`/${id}`, undefined, token)) };
 }
+
+async function getNews(id: string, token: string) {
+  const response = await fetch(`${server.baseUrl}/api/games/${id}/news`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+  expect(response.status).toBe(200);
+  const body = await response.json() as ApiResponse<NewsDTO>;
+  if (!body.success) throw new Error(body.error.message);
+  return body.data;
+}
 const buy = { stockId: "NOVA", side: "BUY", quantity: 20 };
+
+describe("news across briefing, predictions and settlement", () => {
+  it.each([
+    { seed: 0, affectedStockIds: ["NOVA", "GREEN", "FINX"], category: "BAD" },
+    { seed: 1, affectedStockIds: ["NOVA"], category: "GOOD" },
+    { seed: 2, affectedStockIds: ["GREEN"], category: "BAD" },
+    { seed: 3, affectedStockIds: ["FINX"], category: "BAD" },
+    { seed: 5, affectedStockIds: ["NOVA", "GREEN", "FINX"], category: "GOOD" },
+    { seed: 9, affectedStockIds: ["NOVA", "GREEN", "FINX"], category: "NEUTRAL" },
+  ])("applies the published news to the correct stocks: %j", async ({ seed, affectedStockIds, category }) => {
+    const g = await game(false);
+    await server.prisma.gameSession.update({ where: { id: g.id }, data: { seed } });
+    const news = await getNews(g.id, g.token);
+    expect(news).toMatchObject({ affectedStockIds, category });
+    const predicted = state(await g.send("prediction", { direction: "NEUTRAL" }));
+    expect(predicted.prediction?.stockId).toBe(news.focusStockId);
+    state(await g.send("open-market"));
+    expect(await getNews(g.id, g.token)).toEqual(news);
+    const closed = state(await g.send("end-day"));
+    const report = closed.reports[0];
+    expect(report.prediction.stockId).toBe(news.focusStockId);
+    for (const result of report.marketResults) {
+      const crowd = simulateCrowd({ seed, day: 1, stockId: result.stockId, momentum: 0,
+        newsSignal: news.affectedStockIds.includes(result.stockId) ? news.impact : 0 });
+      expect(result.byGroup).toEqual(crowd.byGroup);
+    }
+    expect(await getNews(g.id, g.token)).toEqual(news);
+    state(await g.send("reset"));
+    expect(await getNews(g.id, g.token)).toEqual(news);
+  });
+});
 
 describe("financial APIs with real PostgreSQL", () => {
   it("buys, persists, sells, and writes the authoritative trade audit", async () => {
@@ -254,7 +296,7 @@ describe("three-day progression and reports", () => {
       }
     }
     const finished = await g.load();
-    expect(finished.reports[2].marketResults.find((r) => r.stockId === "NOVA")!.returnPct).toBeLessThan(0);
+    expect(finished.reports.every((report) => report.marketResults.length === 3)).toBe(true);
     expect(await g.send("next-day")).toMatchObject({ status: 409 });
     const resetState = state(await g.send("reset"));
     expect(resetState).toMatchObject({ day: 1, phase: "BRIEFING", prediction: null, netWorthPence: 1_000_000, reports: [] });

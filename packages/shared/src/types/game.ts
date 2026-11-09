@@ -48,7 +48,9 @@ export interface LoanDTO {
 
 export interface NewsDTO {
   day: number;
+  category: "GOOD" | "BAD" | "NEUTRAL";
   focusStockId: StockId;
+  affectedStockIds: StockId[];
   headline: string;
   impact: number;
 }

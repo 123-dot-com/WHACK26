@@ -14,10 +14,10 @@ export default function Briefing() {
     {news.loading ? <p role="status">Loading today's news…</p> : news.error ?
       <p role="alert">{news.error} <button onClick={news.reload}>Retry news</button></p> : news.data && <>
       <article className="news-message"><div className="news-message__sender"><PixelIcon name="newspaper" /><strong>Market announcement</strong><span>now</span></div>
-        <span className="tag">{news.data.focusStockId}</span><h2>{news.data.headline}</h2>
-        <p>{game.day === 1 ? "A major partnership puts Nova AI in the spotlight. Will the crowd buy the story?" :
-          game.day === 2 ? "AI is the talk of the market. Momentum can bring in the FOMO crowd." :
-          "A forecast cut has investors paying attention. Yesterday's hype can turn quickly."}</p></article>
+        <span className="tag">{news.data.affectedStockIds.join(" · ")}</span><h2>{news.data.headline}</h2>
+        <p>{news.data.category === "GOOD" ? "A positive headline has investors paying attention. Will the crowd buy the story?" :
+          news.data.category === "BAD" ? "A negative headline is testing investor confidence. How will the crowd react?" :
+          "A routine update brings little new information. Momentum and investor sentiment can still move prices."}</p></article>
       <article className="news-message news-message--broker"><span className="news-message__avatar"><ChibiSprite size={54} /></span>
         <div><strong>Your broker buddy</strong><p>Headline received. Your next move is yours to make, bro.</p></div></article>
       <article className="news-message"><div className="news-message__sender"><PixelIcon name="market" /><strong>Stock watch</strong><span>latest</span></div>
