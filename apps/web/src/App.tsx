@@ -10,6 +10,7 @@ import Bank from "./pages/Bank";
 import Arbitrage from "./pages/Arbitrage";
 import DailyReport from "./pages/DailyReport";
 import FinalReport from "./pages/FinalReport";
+import Leaderboard from "./pages/Leaderboard";
 
 export default function App() {
   return <GameProvider><StatusBanner />
@@ -25,6 +26,7 @@ export default function App() {
         <Route path="/Arbitrage" element={<Arbitrage />} />
         <Route path="/DailyReport" element={<DailyReport />} />
         <Route path="/FinalReport" element={<FinalReport />} />
+        <Route path="/Leaderboard" element={<Leaderboard />} />
       </Route>
       <Route path="*" element={<main className="page"><h1>Page not found</h1><a href="/">Back to BULLISH!</a></main>} />
     </Routes>

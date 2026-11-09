@@ -21,7 +21,7 @@ export function simulateMarket(input: {
   return { ...crowd, previousPricePence: currentPricePence, nextPricePence,
     returnPct: actualReturn * 100, crowdContributionPct: contribution * 100,
     noiseContributionPct: noise * 100, capAdjustmentPct, roundingAdjustmentPct,
-    explanation: `${crowd.buyCount} investors bought, ${crowd.sellCount} sold and ${crowd.holdCount} held. `
+    explanation: `${crowd.buyCount} investors voted BUY, ${crowd.sellCount} voted SELL and ${crowd.holdCount} voted HOLD. `
       + `Crowd pressure contributed ${(contribution * 100).toFixed(2)} percentage points; noise contributed ${(noise * 100).toFixed(2)}.`
       + (Math.abs(capAdjustmentPct) > .000001 ? ` The 10% cap adjusted the return by ${capAdjustmentPct.toFixed(2)} points.` : "")
       + (Math.abs(roundingAdjustmentPct) > .000001 ? ` Whole-penny ticks adjusted it by ${roundingAdjustmentPct.toFixed(4)} points.` : ""),

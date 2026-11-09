@@ -56,6 +56,38 @@ export interface NewsDTO {
 }
 
 export type AgentGroup = "OPTIMIST" | "PESSIMIST" | "FOMO" | "PANIC" | "LONG_TERM" | "ANALYST";
+
+export interface InvestorActivityDTO {
+  type: "BUY" | "SELL" | "DEPOSIT" | "WITHDRAW" | "BORROW" | "REPAY"
+    | "ARBITRAGE" | "SAVINGS_INTEREST" | "LOAN_INTEREST" | "LOAN_PENALTY";
+  amountPence: number;
+  stockId?: StockId;
+  quantity?: number;
+}
+
+export interface WealthEntryDTO {
+  rank: number;
+  id: string;
+  name: string;
+  isPlayer: boolean;
+  group: AgentGroup | null;
+  cashPence: number;
+  savingsPence: number;
+  stockValuePence: number;
+  grossAssetsPence: number;
+  debtPence: number;
+  netWorthPence: number;
+  returnPct: number;
+  lastActions: InvestorActivityDTO[];
+}
+
+export interface LeaderboardDTO {
+  day: number;
+  settledDay: number;
+  totalParticipants: number;
+  entries: WealthEntryDTO[];
+  player: WealthEntryDTO;
+}
 export interface CrowdResult {
   stockId: StockId;
   buyCount: number;
@@ -94,6 +126,8 @@ export interface DailyReportDTO {
   netWorthPence: number;
   exposurePct: number;
   takeaway: string;
+  // Optional for reports saved before the wealth leaderboard was introduced.
+  leaderboard?: LeaderboardDTO;
 }
 
 export interface ArbitragePuzzleDTO {

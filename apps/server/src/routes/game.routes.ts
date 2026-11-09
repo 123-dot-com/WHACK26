@@ -8,7 +8,7 @@ import {
 } from "../controllers/game.controller.ts";
 import { requireGameAccess } from "../middleware/game-access.ts";
 import { arbitrageController, bankController, progressionController, puzzleController,
-  reportController, tradeController, borrowController, repayController } from "../controllers/gameplay.controller.ts";
+  reportController, tradeController, borrowController, repayController, leaderboardController } from "../controllers/gameplay.controller.ts";
 
 export const gameRouter= Router();
 gameRouter.post("/",createGameController);
@@ -46,3 +46,4 @@ gameRouter.post("/:gameId/end-day", requireGameAccess, progressionController("en
 gameRouter.post("/:gameId/next-day", requireGameAccess, progressionController("next-day"));
 gameRouter.post("/:gameId/reset", requireGameAccess, progressionController("reset"));
 gameRouter.get("/:gameId/reports/:day", requireGameAccess, reportController);
+gameRouter.get("/:gameId/leaderboard", requireGameAccess, leaderboardController);

@@ -1,5 +1,6 @@
 import type { DailyReportDTO } from "@bullish/shared";
 import { money, percent, signedMoney } from "../lib/format";
+import WealthBoard from "./WealthBoard";
 
 export default function ReportDetails({ report }: { report: DailyReportDTO }) {
   return <>
@@ -23,6 +24,8 @@ export default function ReportDetails({ report }: { report: DailyReportDTO }) {
       <details><summary>See all six investor groups</summary><dl className="group-votes">{Object.entries(result.byGroup).map(([group, votes]) =>
         <div key={group}><dt>{group.replaceAll("_", " ")}</dt><dd>{votes.buy} BUY · {votes.sell} SELL · {votes.hold} HOLD</dd></div>)}</dl></details>
     </article>)}</div>
+    {report.leaderboard && <details className="closing-ranking"><summary>Closing wealth ranking · Your rank #{report.leaderboard.player.rank}</summary>
+      <WealthBoard board={report.leaderboard} /></details>}
     <section className="card lesson"><span className="eyebrow">TODAY'S TAKEAWAY</span><h2>{report.takeaway}</h2>
       <p>Stock exposure before close: {report.exposurePct.toFixed(1)}% · Closing wealth: {money(report.netWorthPence)}</p></section>
   </>;

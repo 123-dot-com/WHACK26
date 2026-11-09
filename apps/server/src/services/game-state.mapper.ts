@@ -81,6 +81,10 @@ export function toGameState(game: GameData): GameStateDTO {
             } : null,
         },
         netWorthPence,
-        reports: game.reports.map((report) => report.details as unknown as DailyReportDTO),
+        reports: game.reports.map((report) => {
+            // Full bot portfolios stay on the server; clients receive the top ten snapshot.
+            const { botPortfolios: _bots, ...details } = report.details as unknown as DailyReportDTO & { botPortfolios?: unknown };
+            return details;
+        }),
     };
 }

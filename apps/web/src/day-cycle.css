@@ -1,5 +1,5 @@
-.world-options { position: absolute; z-index: 30; bottom: 18px; left: 50%; transform: translateX(-50%); display: flex; align-items: stretch; gap: 10px; padding: 10px 14px; background: #173b30f5; border: 3px solid #b8a16b; box-shadow: 4px 5px #142b2470; }
-.world-options button { display: flex; flex-direction: column; align-items: center; gap: 5px; min-width: 76px; padding: 9px 13px; color: #eee8ca; background: #28503c; border: 2px solid #9baa7b; box-shadow: 0 3px #102b20; font-size: .8rem; }
+.world-options { position: absolute; z-index: 30; bottom: 18px; left: 50%; transform: translateX(-50%); display: flex; align-items: stretch; gap: 10px; max-width: calc(100% - 20px); overflow-x: auto; padding: 10px 14px; background: #173b30f5; border: 3px solid #b8a16b; box-shadow: 4px 5px #142b2470; }
+.world-options button { display: flex; flex-shrink: 0; flex-direction: column; align-items: center; gap: 5px; min-width: 76px; padding: 9px 13px; color: #eee8ca; background: #28503c; border: 2px solid #9baa7b; box-shadow: 0 3px #102b20; font-size: .8rem; }
 .world-options button .pixel-icon { width: 26px; height: 26px; color: #d8cb8d; }
 .world-options button[aria-pressed="true"], .world-options button.selected { background: #466d48; border-color: #ead390; }
 .world-options button:disabled { opacity: .48; }

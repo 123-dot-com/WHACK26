@@ -1,6 +1,7 @@
 import type { ArbitrageRequest, DailyReportDTO, TradeRequest } from "@bullish/shared";
 import type { Prisma } from "../generated/prisma/client.ts";
 import type { GameData, Transaction } from "./game.repository.ts";
+import type { BotPortfolio } from "../engines/bot.engine.ts";
 
 export async function persistTrade(tx: Transaction, game: GameData, input: TradeRequest,
   pricePence: number, result: { cashPence: number; quantity: number; totalPence: number }) {
@@ -26,7 +27,7 @@ export async function persistArbitrage(tx: Transaction, game: GameData, input: A
 }
 
 export async function persistDayClose(tx: Transaction, game: GameData, report: DailyReportDTO,
-  savingsPence: number) {
+  savingsPence: number, botPortfolios: BotPortfolio[]) {
   await tx.stockPrice.createMany({ data: report.marketResults.map((result) => ({
     gameID: game.id, stockID: result.stockId, day: game.day, pricePence: result.nextPricePence,
   })) });
@@ -34,7 +35,7 @@ export async function persistDayClose(tx: Transaction, game: GameData, report: D
   await tx.bankTransaction.create({ data: { gameId: game.id, day: game.day,
     operation: "INTEREST", amountPence: report.interestPence } });
   await tx.dailyReport.create({ data: { gameId: game.id, day: game.day,
-    details: JSON.parse(JSON.stringify(report)) as Prisma.InputJsonValue } });
+    details: JSON.parse(JSON.stringify({ ...report, botPortfolios })) as Prisma.InputJsonValue } });
   await tx.gameSession.update({ where: { id: game.id }, data: {
     lastSimulatedDay: game.day, phase: game.day === 3 ? "FINISHED" : "REPORT",
   } });

@@ -15,16 +15,23 @@ import { advanceDay, persistDayClose, resetGame } from "../repositories/gameplay
 import { mutateGame } from "./game-mutation.service.ts";
 import { toGameState } from "./game-state.mapper.ts";
 import { getGame } from "./game.service.ts";
+import { closeBotDay, planBotDay, type BotPortfolio } from "../engines/bot.engine.ts";
+import { buildLeaderboard } from "../engines/leaderboard.engine.ts";
+import { botStocksForDay, restoreBotPortfolios } from "./bot-state.service.ts";
 
 export async function endDay(gameId: string, input: VersionRequest, key: string) {
   // Read a consistent snapshot, then run the pure engines outside the write transaction.
   const snapshot = await prisma.$transaction((tx) => findGame(tx, gameId), { isolationLevel: "RepeatableRead" });
   let simulation: ReturnType<typeof buildDailyReport> | undefined;
   let loanAccrual: LoanAccrual | null = null;
+  let botPortfolios: BotPortfolio[] | undefined;
   if (snapshot && snapshot.phase === "TRADING" && snapshot.version === input.expectedVersion) {
     const state = toGameState(snapshot);
     if (state.prediction) {
       const news = getDailyNews(snapshot.seed, snapshot.day);
+      botPortfolios = closeBotDay(planBotDay(restoreBotPortfolios(snapshot), {
+        seed: snapshot.seed, day: snapshot.day, news, stocks: botStocksForDay(snapshot, snapshot.day),
+      }), snapshot.day);
       const results = snapshot.holdings.map(({ stock }) => {
         const currentPricePence = state.stocks.find((item) => item.id === stock.id)!.pricePence;
         const previous = snapshot.prices.find((item) => item.stockID === stock.id && item.day === Math.max(0, snapshot.lastSimulatedDay - 1))!;
@@ -44,6 +51,14 @@ export async function endDay(gameId: string, input: VersionRequest, key: string)
         accruedInterestPence: loanAccrual?.interestPence ?? 0,
         balancePence: loanAccrual?.balancePence ?? activeLoan?.balancePence ?? 0,
       }, news.category);
+      simulation.leaderboard = buildLeaderboard(botPortfolios,
+        results.map((result) => ({ id: result.stockId, pricePence: result.nextPricePence })), {
+          cashPence: state.wallet.cashPence,
+          savingsPence: state.wallet.savingsPence + interest,
+          stockValuePence: state.stocks.reduce((sum, stock) => sum + stock.quantityHeld
+            * results.find((result) => result.stockId === stock.id)!.nextPricePence, 0),
+          debtPence: loanAccrual?.balancePence ?? activeLoan?.balancePence ?? 0,
+        }, snapshot.day, snapshot.day);
     }
   }
   return mutateGame({ gameId, key, operation: "end-day", input, phases: ["TRADING"],
@@ -54,11 +69,11 @@ export async function endDay(gameId: string, input: VersionRequest, key: string)
       if (game.lastSimulatedDay >= game.day) {
         throw new AppError(409, "DAY_ALREADY_SIMULATED", "This day has already been simulated.");
       }
-      if (!simulation || snapshot?.version !== game.version || !game.wallet) {
+      if (!simulation || !botPortfolios || snapshot?.version !== game.version || !game.wallet) {
         throw new AppError(409, "VERSION_CONFLICT", "Your game has changed. Reload and try again.");
       }
       await persistLoanAccrual(tx, game.id, game.day, loanAccrual);
-      await persistDayClose(tx, game, simulation, checkedPence(game.wallet.savingsPence + simulation.interestPence));
+      await persistDayClose(tx, game, simulation, checkedPence(game.wallet.savingsPence + simulation.interestPence), botPortfolios);
     },
   });
 }

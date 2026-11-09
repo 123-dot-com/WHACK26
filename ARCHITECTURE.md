@@ -63,6 +63,33 @@ the same transaction. Unique constraints protect prices, reports, interest and
 arbitrage attempts. Day 3 transitions directly to FINISHED; earlier days enter
 REPORT and require Next Day to open the next BRIEFING.
 
+## Bot portfolios and wealth ranking
+
+The same 100 crowd identities have persistent cash, savings, holdings and loans.
+All participants, including the player, start with 1,000,000 pence. The six
+personalities vary their savings targets, trade sizes, arbitrage participation
+and borrowing appetite. Bots use the existing financial engines and the same
+limits as the player: 2% savings interest, a 500,000-pence deposit ceiling,
+5% daily loan interest, repayment/overdue locks, and one funded arbitrage attempt
+per day. They decide from today's news and prior closes, before closing prices
+are computed. Crowd votes express sentiment; actual bot trades also require
+available cash or owned shares.
+
+End Day stores all 100 settled portfolios inside the existing DailyReport JSON,
+in the same transaction as prices, interest and the player's report. Public
+reports omit these internal portfolios and include a top-ten ranking snapshot.
+No database migration is needed. Sessions predating the feature reconstruct
+missing bot snapshots deterministically from their seed and price history.
+Reset removes the snapshots with the reports and reproduces the same scenario.
+
+`GET /api/games/:gameId/leaderboard` requires the owning token and reads a
+Repeatable Read snapshot. It ranks the player and bots by cash + savings + current
+share value - full outstanding debt, returning ten leaders and the player's rank
+even when outside the top ten. Equal wealth shares a competition rank, with
+deterministic display order. The player's current actions update their wealth;
+bot portfolios advance only at End Day. Ranking remains available in every phase
+without opening the market. Daily and final reports keep their closing rankings.
+
 ## Pixel interface
 
 The game fills the viewport. `/Room` is the scene hub (`/WakeUp` redirects there).

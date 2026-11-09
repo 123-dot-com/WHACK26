@@ -11,6 +11,7 @@ import PixelIcon from "./pixel/PixelIcon";
 const titles: Record<string, string> = {
   "/Market": "Stocks", "/Arbitrage": "Arbitrage", "/Portfolio": "Portfolio",
   "/DailyReport": "Daily reports", "/FinalReport": "Final report",
+  "/Leaderboard": "Wealth leaderboard",
 };
 
 export default function GameLayout() {

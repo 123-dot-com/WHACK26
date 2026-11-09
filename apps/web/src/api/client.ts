@@ -1,5 +1,5 @@
 import type { ApiResponse, ArbitragePuzzleDTO, ArbitrageRequest, BankTransferRequest, BorrowRequest,
-  GameStateDTO, HealthDTO, NewsDTO, PredictionRequest, TradeRequest } from "@bullish/shared";
+  GameStateDTO, HealthDTO, LeaderboardDTO, NewsDTO, PredictionRequest, TradeRequest } from "@bullish/shared";
 
 export class ApiError extends Error {
   status: number;
@@ -10,6 +10,9 @@ export class ApiError extends Error {
 }
 
 export interface GameSession { gameId: string; accessToken: string }
+
+export const getLeaderboard = (session: GameSession, signal?: AbortSignal) =>
+  request<LeaderboardDTO>(`/games/${session.gameId}/leaderboard`, { session, signal });
 type WithoutVersion<T> = Omit<T, "expectedVersion">;
 export type GameAction =
   | { type: "trades"; input: WithoutVersion<TradeRequest> }

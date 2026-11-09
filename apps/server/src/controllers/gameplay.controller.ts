@@ -7,9 +7,15 @@ import { transferMoney } from "../services/bank.service.ts";
 import { endDay, getReport, nextDay, reset } from "../services/progression.service.ts";
 import { executeTrade } from "../services/trading.service.ts";
 import { borrow, repay } from "../services/loan.service.ts";
+import { getLeaderboard } from "../services/leaderboard.service.ts";
 
 type GameRequest = Request<{ gameId: string }>;
 const requestKey = (req: Request) => idempotencyKeySchema.parse(req.get("Idempotency-Key"));
+
+export async function leaderboardController(req: GameRequest, res: Response) {
+  const result = await getLeaderboard(req.params.gameId);
+  res.json({ success: true, data: result.leaderboard, stateVersion: result.version });
+}
 
 export async function borrowController(req: GameRequest, res: Response) {
   res.json(await borrow(req.params.gameId, borrowRequestSchema.parse(req.body), requestKey(req)));
