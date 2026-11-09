@@ -27,4 +27,6 @@ ENV PORT=8080
 EXPOSE 8080
 
 USER node
-CMD ["node", "apps/server/dist/index.js"]
+# Also initialize the database when the platform's pre-deploy hook is not applied.
+# exec keeps Node as PID 1 so it receives shutdown signals directly.
+CMD ["sh", "-c", "npm run db:deploy && npm run db:seed && exec node apps/server/dist/index.js"]

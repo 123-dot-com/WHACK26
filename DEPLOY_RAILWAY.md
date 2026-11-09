@@ -11,7 +11,7 @@ Open PowerShell in `D:\WHACK26`. Review the diff, then commit the deployment fil
 
 ```powershell
 git diff
-git add Dockerfile .dockerignore railway.json DEPLOY_RAILWAY.md SETUP.md package.json apps/server/src/app.ts apps/server/src/index.ts apps/server/src/lib/env.ts
+git add Dockerfile .dockerignore railway.json DEPLOY_RAILWAY.md SETUP.md package.json apps/server/src/app.ts apps/server/src/index.ts apps/server/src/lib/env.ts apps/server/src/routes/health.routes.ts apps/server/src/tests/health.integration.test.ts
 git commit -m "Prepare Railway deployment"
 git push -u origin HEAD
 git branch --show-current
@@ -88,15 +88,21 @@ deployment. Open the logs and check each stage:
 
 1. **Build**: `npm ci` and `npm run build` complete successfully.
 2. **Pre-deploy**: `npm run db:deploy && npm run db:seed` completes successfully.
-3. **Deploy**: the log shows `Server listening on port 8080`, and the health check
-   succeeds.
+3. **Deploy**: the container runs migration and seed again as a startup fallback,
+   then logs `Server listening on port 8080`, and the health check succeeds.
+
+The Docker startup command initializes the database even if Railway's pre-deploy
+hook is not applied. Leave the custom Start Command unset so Railway uses the
+Dockerfile command. If startup initialization fails, the server does not start.
 
 `prisma migrate deploy` applies committed migrations. The seed uses `upsert` for
 the three stocks, so it can run again without resetting saved games. Do not run
 `migrate dev` or `migrate reset` against the production database.
 
-The `/api/health` endpoint queries the database before returning success. Railway
-uses this check during deployment. To receive alerts about later outages, set up
+The `/api/health` endpoint checks that the database has the `Stock` table and all
+three required stocks before returning success. `/api/health/live` checks only
+that the server is running. Railway uses the readiness check during deployment.
+To receive alerts about later outages, set up
 an uptime monitor for the health URL and enable Railway failure notifications.
 
 ## 6. Verify the website
@@ -143,11 +149,32 @@ an existing browser session.
 
 ## Troubleshooting
 
+If starting a game returns HTTP 500 and the logs show `P2021` or
+`The table public.Stock does not exist`, the database used by the app has not
+been migrated. A working database connection alone is insufficient.
+
+To repair an existing deployment without waiting for a code update:
+
+1. In the **app service**, confirm `DATABASE_URL=${{Postgres.DATABASE_URL}}`.
+2. Open **Settings → Deploy → Pre-deploy Command** and set:
+
+   ```sh
+   npm run db:deploy && npm run db:seed
+   ```
+
+3. Redeploy the app service. Confirm the migration and seed commands succeed
+   before retrying **Start your run**. Changing the command requires a redeploy;
+   restarting the existing container alone does not apply a new pre-deploy hook.
+
+Alternatively, after pushing the updated Dockerfile, clear any custom Start
+Command and deploy the new commit to use the startup fallback.
+
 | Symptom | What to check |
 | --- | --- |
 | Workspace/shared package not found | Root Directory points to the repository root; all required files were pushed |
 | Missing `DATABASE_URL` or `ENOTFOUND` | Database reference, correct service name, same project and environment |
 | Pre-deploy failure | Migration/seed logs and PostgreSQL service status |
+| Starting a game returns HTTP 500 with `P2021` | Run migration and seed against the app service's database, then redeploy |
 | Application failed to respond | `PORT=8080`, domain target port is 8080, startup logs |
 | Home page works but refreshing `/Room` fails | Express changes are deployed and `NODE_ENV=production` |
 | API returns HTML | Correct deployment, `/api` path, production server instead of the Vite dev server |
