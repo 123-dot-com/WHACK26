@@ -3,10 +3,12 @@ import { prisma } from "../lib/prisma.ts";
 import { createAccessToken, hashToken } from "../lib/token.ts"
 import { toGameState } from "./game-state.mapper.ts";
 import { gameStateInclude } from "../repositories/game.repository.ts";
-import { getDailyNews } from "../data/news.ts";
+import { getPublishedNews, prepareDailyNews } from "../data/news.ts";
 import { AppError } from "../lib/app-error.ts";
 export async function createGame() {
     const accessToken = createAccessToken();
+    const seed = randomInt(0, 2_147_483_648);
+    const news = prepareDailyNews({ seed, day: 0, dailyNews: {}, newsHistory: [] }, 1);
     const stocks = await prisma.stock.findMany({
         where: {
             id: { in: ["NOVA", "GREEN", "FINX"] },
@@ -20,7 +22,8 @@ export async function createGame() {
     }
     const game = await prisma.gameSession.create({
         data: {
-            seed: randomInt(0, 2_147_483_648),
+            seed,
+            ...news,
             wallet: {
                 create: {},
             },
@@ -70,6 +73,7 @@ export async function getNews(gameId: string) {
     select: {
       day: true,
       seed: true,
+      dailyNews: true,
       version: true,
     },
   });
@@ -78,7 +82,7 @@ export async function getNews(gameId: string) {
     return null;
   }
 
-  const news = getDailyNews(game.seed, game.day);
+  const news = getPublishedNews(game, game.day);
 
   return {
     news,

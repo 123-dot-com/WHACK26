@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getDailyNews, newsTemplates } from "../data/news.ts";
+import { getDailyNews, getNewsSchedule, getPublishedNews, newsTemplates, prepareDailyNews } from "../data/news.ts";
 
 describe("daily news", () => {
   it("includes ten headlines in each requested category", () => {
@@ -53,5 +53,34 @@ describe("daily news", () => {
 
   it.each([0, 4, -1, 1.5, NaN])("rejects unsupported day %s", (day) => {
     expect(() => getDailyNews(2026, day)).toThrow(RangeError);
+  });
+
+  it("draws all 30 templates before reusing any, even with an unchanged session seed", () => {
+    let session = { seed: 2026, day: 0, dailyNews: {}, newsHistory: [] as string[] };
+    const seen = new Set<string>();
+    for (let draw = 0; draw < 30; draw++) {
+      const day = draw % 3 + 1;
+      const next = prepareDailyNews(session, day, { reset: day === 1 });
+      const publication = next.dailyNews[String(day)];
+      expect(seen.has(publication.templateHeadline)).toBe(false);
+      seen.add(publication.templateHeadline);
+      session = { ...session, ...next, day };
+      expect(getPublishedNews(session, day)).toEqual(publication.news);
+      expect(Object.keys(next.dailyNews)).toHaveLength(day);
+      expect(prepareDailyNews(session, day)).toEqual(next);
+    }
+    expect(seen.size).toBe(30);
+    const nextCycle = prepareDailyNews(session, 1, { reset: true });
+    expect(session.newsHistory.slice(-3)).not.toContain(nextCycle.dailyNews["1"].templateHeadline);
+    expect(nextCycle.newsHistory).toHaveLength(4);
+  });
+
+  it("moves an existing seeded session beyond its old trio without changing today's news", () => {
+    const session = { seed: 2026, day: 1, dailyNews: {}, newsHistory: [] };
+    const oldTemplates = getNewsSchedule(session.seed).map((template) => template.headline);
+    const next = prepareDailyNews(session, 2);
+    expect(getPublishedNews({ ...session, ...next }, 1)).toEqual(getDailyNews(session.seed, 1));
+    expect(oldTemplates).not.toContain(next.dailyNews["2"].templateHeadline);
+    expect(next.newsHistory).toEqual([...oldTemplates, next.dailyNews["2"].templateHeadline]);
   });
 });

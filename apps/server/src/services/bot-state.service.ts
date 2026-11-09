@@ -1,5 +1,5 @@
 import type { StockId } from "@bullish/shared";
-import { getDailyNews } from "../data/news.ts";
+import { getPublishedNews } from "../data/news.ts";
 import { closeBotDay, createBotPortfolios, planBotDay, type BotPortfolio, type BotStock } from "../engines/bot.engine.ts";
 import type { GameData } from "../repositories/game.repository.ts";
 
@@ -20,7 +20,7 @@ export function restoreBotPortfolios(game: GameData): BotPortfolio[] {
     // Reports keep the settled portfolios atomically with prices and player wealth.
     // Older games can reconstruct missing bot snapshots from their historical prices.
     bots = stored?.botPortfolios ?? closeBotDay(planBotDay(bots, {
-      seed: game.seed, day, news: getDailyNews(game.seed, day), stocks: botStocksForDay(game, day),
+      seed: game.seed, day, news: getPublishedNews(game, day), stocks: botStocksForDay(game, day),
     }), day);
   }
   return bots;

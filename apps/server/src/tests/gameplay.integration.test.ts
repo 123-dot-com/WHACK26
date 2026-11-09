@@ -3,6 +3,7 @@ import type { ApiResponse, GameStateDTO, NewsDTO } from "@bullish/shared";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { startTestServer } from "./helpers/test-server.ts";
 import { simulateCrowd } from "../engines/crowd.engine.ts";
+import { getDailyNews, getNewsSchedule, getPublishedNews, newsTemplates } from "../data/news.ts";
 import { fetchArbitrageTrade } from "./helpers/arbitrage.ts";
 
 let server: Awaited<ReturnType<typeof startTestServer>>;
@@ -61,7 +62,7 @@ describe("news across briefing, predictions and settlement", () => {
     { seed: 9, affectedStockIds: ["NOVA", "GREEN", "FINX"], category: "NEUTRAL" },
   ])("applies the published news to the correct stocks: %j", async ({ seed, affectedStockIds, category }) => {
     const g = await game(false);
-    await server.prisma.gameSession.update({ where: { id: g.id }, data: { seed } });
+    await server.prisma.gameSession.update({ where: { id: g.id }, data: { seed, dailyNews: {}, newsHistory: [] } });
     const news = await getNews(g.id, g.token);
     expect(news).toMatchObject({ affectedStockIds, category });
     const predicted = state(await g.send("prediction", { direction: "NEUTRAL" }));
@@ -78,7 +79,85 @@ describe("news across briefing, predictions and settlement", () => {
     }
     expect(await getNews(g.id, g.token)).toEqual(news);
     state(await g.send("reset"));
+    const restartedNews = await getNews(g.id, g.token);
+    expect(restartedNews.headline).not.toBe(news.headline);
+    expect(await getNews(g.id, g.token)).toEqual(restartedNews);
+  });
+
+  it("publishes new day-one news once for concurrent retries of Restart", async () => {
+    const g = await game(false);
+    const oldSeed = 2026;
+    await server.prisma.gameSession.update({ where: { id: g.id }, data: { seed: oldSeed, dailyNews: {}, newsHistory: [] } });
+    const previousHeadline = getDailyNews(oldSeed, 1).headline;
+    const input = { expectedVersion: g.current().version }, key = randomUUID();
+    const responses = await Promise.all([
+      request(`/${g.id}/reset`, input, g.token, key),
+      request(`/${g.id}/reset`, input, g.token, key),
+    ]);
+    const restarted = state(responses[0]);
+    expect(state(responses[1])).toEqual(restarted);
+    expect(restarted.version).toBe(input.expectedVersion + 1);
+    const stored = await server.prisma.gameSession.findUniqueOrThrow({ where: { id: g.id } });
+    expect(stored.seed).not.toBe(oldSeed);
+    const news = await getNews(g.id, g.token);
+    expect(news.headline).not.toBe(previousHeadline);
+    expect(news).toEqual(getPublishedNews(stored, 1));
+    expect(state(await request(`/${g.id}/reset`, input, g.token, key))).toEqual(restarted);
+    expect(await g.load()).toEqual(restarted);
     expect(await getNews(g.id, g.token)).toEqual(news);
+    expect((await server.prisma.gameSession.findUniqueOrThrow({ where: { id: g.id } })).seed).toBe(stored.seed);
+  });
+
+  it("draws and persists new news when the same session advances a day, including legacy seeds", async () => {
+    const g = await game(false);
+    const seed = 2026;
+    // Leave only this template unused to make the next day's random draw verifiable.
+    const nextTemplate = newsTemplates.find((template) => template.category === "GOOD"
+      && !template.numberRange && !getNewsSchedule(seed).includes(template))!;
+    await server.prisma.gameSession.update({ where: { id: g.id }, data: {
+      seed, dailyNews: {}, newsHistory: newsTemplates.filter((template) => template !== nextTemplate).map((template) => template.headline),
+    } });
+    const firstDay = await getNews(g.id, g.token);
+    const initialPrices = g.current().stocks;
+    expect(firstDay).toEqual(getDailyNews(seed, 1));
+    state(await g.send("prediction", { direction: "NEUTRAL" }));
+    state(await g.send("open-market"));
+    state(await g.send("end-day"));
+    const input = { expectedVersion: g.current().version }, key = randomUUID();
+    const responses = await Promise.all([
+      request(`/${g.id}/next-day`, input, g.token, key),
+      request(`/${g.id}/next-day`, input, g.token, key),
+    ]);
+    const secondDayState = state(responses[0]);
+    expect(state(responses[1])).toEqual(secondDayState);
+    expect(secondDayState).toMatchObject({ gameId: g.id, day: 2, phase: "BRIEFING" });
+    const secondDay = await getNews(g.id, g.token);
+    expect(secondDay).toMatchObject({ day: 2, category: nextTemplate.category, impact: nextTemplate.impact,
+      affectedStockIds: [...nextTemplate.affectedStockIds] });
+    expect(secondDay.headline).toBe(nextTemplate.headline);
+    expect(secondDay.headline).not.toBe(getDailyNews(seed, 2).headline);
+    const stored = await server.prisma.gameSession.findUniqueOrThrow({ where: { id: g.id } });
+    expect(stored.seed).toBe(seed);
+    expect(Object.keys(stored.dailyNews as object).sort()).toEqual(["1", "2"]);
+    expect(getPublishedNews(stored, 1)).toEqual(firstDay);
+    expect(getPublishedNews(stored, 2)).toEqual(secondDay);
+    expect(stored.newsHistory).toHaveLength(30);
+    expect(await getNews(g.id, g.token)).toEqual(secondDay);
+    expect(state(await request(`/${g.id}/next-day`, input, g.token, key))).toEqual(secondDayState);
+    expect(await getNews(g.id, g.token)).toEqual(secondDay);
+    const predicted = state(await request(`/${g.id}/prediction`, {
+      direction: "BULLISH", expectedVersion: secondDayState.version,
+    }, g.token));
+    expect(predicted.prediction?.stockId).toBe(secondDay.focusStockId);
+    const opened = state(await request(`/${g.id}/open-market`, { expectedVersion: predicted.version }, g.token));
+    const closed = state(await request(`/${g.id}/end-day`, { expectedVersion: opened.version }, g.token, randomUUID()));
+    for (const result of closed.reports[1].marketResults) {
+      const crowd = simulateCrowd({ seed, day: 2, stockId: result.stockId,
+        momentum: Math.max(-1, Math.min(1, (result.previousPricePence / initialPrices.find((stock) => stock.id === result.stockId)!.pricePence - 1) / .1)),
+        newsSignal: secondDay.affectedStockIds.includes(result.stockId) ? secondDay.impact : 0 });
+      expect(result.byGroup).toEqual(crowd.byGroup);
+    }
+    expect(await getNews(g.id, g.token)).toEqual(secondDay);
   });
 });
 
@@ -286,9 +365,11 @@ describe("three-day progression and reports", () => {
     expect(await server.prisma.dailyReport.count({ where: { gameId: g.id } })).toBe(1);
     expect(await server.prisma.stockPrice.count({ where: { gameID: g.id, day: 1 } })).toBe(3);
   });
-  it("finishes after three days, persists reports, resets, and reproduces the seeded outcome", async () => {
+  it("finishes after three days, persists reports, and starts a fresh scenario on reset", async () => {
     const g = await game();
+    const previousHeadlines: string[] = [];
     for (let day = 1; day <= 3; day++) {
+      previousHeadlines.push((await getNews(g.id, g.token)).headline);
       expect(g.current().prediction).toBeNull();
       state(await g.send("prediction", { direction: day === 3 ? "BEARISH" : "BULLISH" }));
       const closed = state(await g.send("end-day"));
@@ -306,9 +387,16 @@ describe("three-day progression and reports", () => {
     expect(resetState).toMatchObject({ day: 1, phase: "BRIEFING", prediction: null, netWorthPence: 1_000_000, reports: [] });
     expect(resetState.version).toBeGreaterThan(finished.version);
     expect(resetState.stocks.every((s) => s.quantityHeld === 0)).toBe(true);
-    state(await g.send("open-market"));
-    state(await g.send("prediction", { direction: "BULLISH" }));
-    const replayed = state(await g.send("end-day"));
-    expect(replayed.reports[0].marketResults).toEqual(finished.reports[0].marketResults);
+    for (let day = 1; day <= 3; day++) {
+      const news = await getNews(g.id, g.token);
+      expect(previousHeadlines).not.toContain(news.headline);
+      state(await g.send("open-market"));
+      state(await g.send("prediction", { direction: "BULLISH" }));
+      const closed = state(await g.send("end-day"));
+      expect(closed.reports[day - 1].prediction.stockId).toBe(news.focusStockId);
+      expect(await g.load()).toEqual(closed);
+      if (day < 3) state(await g.send("next-day"));
+    }
+    expect(g.current().phase).toBe("FINISHED");
   });
 });

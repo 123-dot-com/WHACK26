@@ -71,7 +71,8 @@ Night / asleep (same day) → click Wake up → Next Day / Final Report
 - HOLD / skipping trades is allowed. Running out of money does not end the demo early.
 - Each day can end only once; the REPORT phase blocks trading, Bank, and Arbitrage actions.
 - Cash, savings, holdings, and price history persist across days.
-- Reset reproduces the seeded demo scenario.
+- Each new day draws and saves one random news story. The session uses all 30 templates before refilling its pool; reopening the phone keeps the day's saved story.
+- Reset starts a fresh seeded scenario and keeps the session's news history to avoid repeats.
 - **Current screen flow:** the phone shows stock news/messages only. Stocks,
   Arbitrage and Bank are persistent screen options; predictions are made in Stocks.
 - **Bed controls the clock:** click the bed to sleep and settle End Day, stay on
@@ -86,12 +87,12 @@ Night / asleep (same day) → click Wake up → Next Day / Final Report
 | Demo duration | 3–5 minutes |
 | Starting funds | £10,000 in-game money |
 | Stocks | 3 fictional tickers: NOVA, GREEN, FINX |
-| News | 1 major story per day; optional secondary stories |
+| News | 1 random story saved per day, from 30 templates |
 | Agents | 100 agents across 6 behavior groups |
 | Bank | Current Account + 1 Savings Account |
 | Arbitrage | 1 puzzle per day, 1 attempt per day |
 | Outcomes | Daily & Final Report, Reset |
-| Scenarios | Fixed seed; prices still calculated by the simulation |
+| Scenarios | Random seed per run; prices calculated by the deterministic simulation |
 
 ### Proposed Demo Narrative
 
@@ -339,7 +340,7 @@ Every game starts with **day-0** stock prices; closing Day N creates a `StockPri
 
 | Model | Key fields | Purpose |
 |---|---|---|
-| `GameSession` | `id`, `day`, `phase`, `seed`, `version`, `lastSimulatedDay` | Game progression |
+| `GameSession` | `id`, `day`, `phase`, `seed`, `dailyNews`, `newsHistory`, `version`, `lastSimulatedDay` | Game progression and persisted daily news |
 | `Wallet` | `gameId`, `cashPence`, `savingsPence`, `monthlyInterestBps`, `savingsDepositLimitPence` | Accounts |
 | `Stock` | `id`, `name`, `sector`, `volatility`, `initialPricePence` | Static catalog |
 | `Holding` | `gameId`, `stockId`, `quantity` | Shares held |
@@ -726,7 +727,7 @@ Assume the player starts with £10,000:
 | BR-07 | At most one successful End Day per game/day |
 | BR-08 | REPORT/FINISHED blocks financial transactions |
 | BR-09 | Daily price movement capped at approximately ±10% (tick/floor rule pending) |
-| BR-10 | Reset reproduces the seeded scenario |
+| BR-10 | Reset starts a fresh seeded scenario and preserves news history; news is randomly drawn once per new day |
 | BR-11 | Net Worth includes Savings |
 | BR-12 | Credit Savings interest once per day |
 | BR-13 | Allow at most one Arbitrage attempt per day |

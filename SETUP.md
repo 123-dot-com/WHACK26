@@ -90,7 +90,7 @@ development only. See [DEPLOY_RAILWAY.md](DEPLOY_RAILWAY.md) for the cloud walkt
 | `apps/server/src/services` | Game rules and database transaction orchestration |
 | `apps/server/src/engines` | Pure calculations without database access |
 | `apps/server/src/repositories` | Prisma queries, including transaction clients |
-| `apps/server/src/data` | Fixed scenarios and news |
+| `apps/server/src/data` | News templates and daily publication, arbitrage scenarios |
 | `apps/server/src/lib` | Environment configuration and Prisma instance |
 
 Only the server accesses Prisma. React submits player intent and displays the
@@ -183,8 +183,15 @@ Prices use whole-penny ticks inside the ±10% band: ceil(90% of current price)
 through floor(110%), with a one-penny floor. A penny-priced stock may stay flat.
 Reports expose crowd/noise contributions and cap/tick adjustments separately.
 Day 3 closes directly into FINISHED and retains its daily report. Reset clears
-gameplay history but preserves the access token, seed, monotonic version and old
-request keys so a delayed retry cannot execute again after a reset.
+gameplay history and picks a new market seed, preserving news history so subsequent
+days keep drawing unused templates from the same session's pool. Creation and
+Next Day save exactly one random publication for the new day. Reopening the phone
+uses that publication, as do predictions, bots and settlement. After all 30
+templates have been used, the pool refills while excluding the last three.
+The daily-news migration adds `dailyNews` and `newsHistory` to GameSession.
+Existing days retain their original headlines; the next day publishes new news.
+Reset preserves the access token, monotonic version and old request keys so a
+delayed retry cannot execute again or reroll the day's news.
 
 The browser stores only the session ID/token in localStorage. It reloads game
 state from the API, displays pending actions without changing balances optimistically,

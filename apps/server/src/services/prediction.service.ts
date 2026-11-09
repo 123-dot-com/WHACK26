@@ -1,5 +1,5 @@
 import type { PredictionRequest } from "@bullish/shared";
-import { getDailyNews } from "../data/news.ts";
+import { getPublishedNews } from "../data/news.ts";
 import { AppError } from "../lib/app-error.ts";
 import { prisma } from "../lib/prisma.ts";
 import { toGameState } from "./game-state.mapper.ts";
@@ -12,7 +12,7 @@ export async function savePrediction(
   return prisma.$transaction(async (tx) => {
     const current = await tx.gameSession.findUnique({
       where: { id: gameId },
-      select: { day: true, seed: true, phase: true, version: true },
+      select: { day: true, seed: true, dailyNews: true, phase: true, version: true },
     });
 
     if (!current) {
@@ -35,7 +35,7 @@ export async function savePrediction(
       );
     }
 
-    const news = getDailyNews(current.seed, current.day);
+    const news = getPublishedNews(current, current.day);
 
     // Claim this version before saving so concurrent requests cannot both succeed.
     const updated = await tx.gameSession.updateMany({

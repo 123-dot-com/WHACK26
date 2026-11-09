@@ -1,3 +1,4 @@
+import { randomInt } from "node:crypto";
 import type { NewsDTO, StockId } from "@bullish/shared";
 import { seededRandom } from "../engines/random.ts";
 
@@ -81,11 +82,7 @@ export const newsTemplates: readonly NewsTemplate[] = [
     affectedStockIds: marketStocks },
 ];
 
-export function getDailyNews(seed: number, day: number): NewsDTO {
-  if (!Number.isInteger(day) || day < 1 || day > 3) {
-    throw new RangeError("News is only available for game days 1 to 3.");
-  }
-
+export function getNewsSchedule(seed: number): readonly NewsTemplate[] {
   // Shuffle once per seed so each game has three distinct, repeatable headlines.
   const schedule = [...newsTemplates];
   const random = seededRandom(seed, 0, "MARKET", "newsSelection");
@@ -93,7 +90,77 @@ export function getDailyNews(seed: number, day: number): NewsDTO {
     const index = Math.floor(random() * (i + 1));
     [schedule[i], schedule[index]] = [schedule[index], schedule[i]];
   }
-  const template = schedule[day - 1];
+  return schedule.slice(0, 3);
+}
+
+export function getDailyNews(seed: number, day: number): NewsDTO {
+  if (!Number.isInteger(day) || day < 1 || day > 3) {
+    throw new RangeError("News is only available for game days 1 to 3.");
+  }
+
+  const template = getNewsSchedule(seed)[day - 1];
+  return renderNews(template, seed, day);
+}
+
+type PublishedNews = {
+  templateHeadline: string;
+  news: { [Field in keyof NewsDTO]: NewsDTO[Field] };
+};
+
+interface NewsSession {
+  seed: number;
+  day: number;
+  dailyNews: unknown;
+  newsHistory: readonly string[];
+}
+
+export function getPublishedNews(game: Pick<NewsSession, "seed" | "dailyNews">, day: number): NewsDTO {
+  const publications = game.dailyNews as Record<string, PublishedNews>;
+  // Keep existing days consistent with predictions and reports in older sessions.
+  return publications[String(day)]?.news ?? getDailyNews(game.seed, day);
+}
+
+export function prepareDailyNews(game: NewsSession, day: number,
+  options: { seed?: number; reset?: boolean } = {}) {
+  if (!Number.isInteger(day) || day < 1 || day > 3) {
+    throw new RangeError("News is only available for game days 1 to 3.");
+  }
+
+  const publications = { ...game.dailyNews as Record<string, PublishedNews> };
+  let history = [...game.newsHistory];
+  if (game.day > 0 && Object.keys(publications).length === 0 && history.length === 0) {
+    // Old sessions may have replayed this seeded trio before news history existed.
+    history = getNewsSchedule(game.seed).map((template) => template.headline);
+  }
+  for (let previousDay = 1; previousDay <= game.day; previousDay++) {
+    const publication = publications[String(previousDay)] ?? {
+      templateHeadline: getNewsSchedule(game.seed)[previousDay - 1].headline,
+      news: getDailyNews(game.seed, previousDay),
+    };
+    publications[String(previousDay)] = publication;
+    if (!history.includes(publication.templateHeadline)) history.push(publication.templateHeadline);
+  }
+  if (!options.reset && publications[String(day)]) {
+    return { dailyNews: publications, newsHistory: history };
+  }
+
+  let available = newsTemplates.filter((template) => !history.includes(template.headline));
+  if (available.length === 0) {
+    // Refill the pool after all 30 templates, keeping the last three out of the next draw.
+    history = history.slice(-3);
+    available = newsTemplates.filter((template) => !history.includes(template.headline));
+  }
+  const template = available[randomInt(available.length)];
+  return {
+    dailyNews: {
+      ...(options.reset ? {} : publications),
+      [day]: { templateHeadline: template.headline, news: renderNews(template, options.seed ?? game.seed, day) },
+    },
+    newsHistory: [...history, template.headline],
+  };
+}
+
+function renderNews(template: NewsTemplate, seed: number, day: number): NewsDTO {
   let headline = template.headline;
   if (template.numberRange) {
     const [minimum, maximum] = template.numberRange;

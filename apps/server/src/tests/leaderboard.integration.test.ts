@@ -105,15 +105,18 @@ describe("final wealth leaderboard over HTTP and PostgreSQL", () => {
     expect(board.player.grossAssetsPence - board.player.debtPence).toBe(state.netWorthPence);
   });
 
-  it("locks rankings again after reset and reproduces the same final outcome", async () => {
+  it("locks rankings again after reset and settles a fresh scenario", async () => {
     const g = await game();
     await finish(g);
-    const expected = await g.board();
+    const previous = await server.prisma.gameSession.findUniqueOrThrow({ where: { id: g.id } });
     await g.send("reset");
     await g.locked();
     expect(g.state().reports).toEqual([]);
+    expect((await server.prisma.gameSession.findUniqueOrThrow({ where: { id: g.id } })).seed).not.toBe(previous.seed);
     await finish(g);
+    const expected = g.state().reports[2].leaderboard;
     expect(await g.board()).toEqual(expected);
+    expect((await g.load()).reports[2].leaderboard).toEqual(expected);
   });
 
   it("removes early rankings from legacy report data and saved response replays", async () => {

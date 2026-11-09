@@ -1,5 +1,5 @@
 import type { StockId, VersionRequest } from "@bullish/shared";
-import { getDailyNews } from "../data/news.ts";
+import { getPublishedNews } from "../data/news.ts";
 import { calculateInterest } from "../engines/bank.engine.ts";
 import { accrueLoan, type LoanAccrual } from "../engines/loan.engine.ts";
 import { persistLoanAccrual } from "../repositories/loan.repository.ts";
@@ -28,7 +28,7 @@ export async function endDay(gameId: string, input: VersionRequest, key: string)
   if (snapshot && snapshot.phase === "TRADING" && snapshot.version === input.expectedVersion) {
     const state = toGameState(snapshot);
     if (state.prediction) {
-      const news = getDailyNews(snapshot.seed, snapshot.day);
+      const news = getPublishedNews(snapshot, snapshot.day);
       botPortfolios = closeBotDay(planBotDay(restoreBotPortfolios(snapshot), {
         seed: snapshot.seed, day: snapshot.day, news, stocks: botStocksForDay(snapshot, snapshot.day),
       }), snapshot.day);

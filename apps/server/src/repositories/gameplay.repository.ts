@@ -1,7 +1,9 @@
+import { randomInt } from "node:crypto";
 import type { ArbitrageRequest, DailyReportDTO, TradeRequest } from "@bullish/shared";
 import type { Prisma } from "../generated/prisma/client.ts";
 import type { GameData, Transaction } from "./game.repository.ts";
 import type { BotPortfolio } from "../engines/bot.engine.ts";
+import { prepareDailyNews } from "../data/news.ts";
 
 export async function persistTrade(tx: Transaction, game: GameData, input: TradeRequest,
   pricePence: number, result: { cashPence: number; quantity: number; totalPence: number }) {
@@ -42,11 +44,17 @@ export async function persistDayClose(tx: Transaction, game: GameData, report: D
 }
 
 export function advanceDay(tx: Transaction, game: GameData) {
-  return tx.gameSession.update({ where: { id: game.id }, data: { day: game.day + 1, phase: "BRIEFING" } });
+  const day = game.day + 1;
+  const news = prepareDailyNews(game, day);
+  return tx.gameSession.update({ where: { id: game.id }, data: { day, phase: "BRIEFING", ...news } });
 }
 
 export async function resetGame(tx: Transaction, game: GameData) {
-  // Retain access, seed, monotonic version and old request keys so delayed retries stay harmless.
+  const seed = (game.seed + randomInt(1, 2_147_483_648)) % 2_147_483_648;
+  const news = prepareDailyNews(game, 1, { seed, reset: true });
+
+  // Keep the news history across runs so Restart continues drawing unseen templates.
+  // Retain access, monotonic version and old request keys so delayed retries stay harmless.
   await tx.trade.deleteMany({ where: { gameId: game.id } });
   await tx.loanEvent.deleteMany({ where: { gameId: game.id } });
   await tx.loan.deleteMany({ where: { gameId: game.id } });
@@ -61,5 +69,5 @@ export async function resetGame(tx: Transaction, game: GameData) {
   })) });
   await tx.wallet.update({ where: { gameId: game.id },
     data: { cashPence: 1_000_000, savingsPence: 0, monthlyInterestBps: 200, savingsDepositLimitPence: 500_000 } });
-  await tx.gameSession.update({ where: { id: game.id }, data: { day: 1, phase: "BRIEFING", lastSimulatedDay: 0, loanLockedThroughDay: 0 } });
+  await tx.gameSession.update({ where: { id: game.id }, data: { seed, ...news, day: 1, phase: "BRIEFING", lastSimulatedDay: 0, loanLockedThroughDay: 0 } });
 }

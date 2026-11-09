@@ -33,6 +33,8 @@ model GameSession {
   day                  Int                 @default(1)
   phase                GamePhase           @default(BRIEFING)
   seed                 Int                 @default(2026)
+  dailyNews            Json                @default("{}")
+  newsHistory          String[]            @default([])
   version              Int                 @default(0)
   lastSimulatedDay     Int                 @default(0)
   loanLockedThroughDay Int                 @default(0)

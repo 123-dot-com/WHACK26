@@ -49,13 +49,21 @@ independent seeded random streams for agent and market noise. News influences
 votes; it is not added to prices a second time. Report attribution distinguishes
 crowd, noise, the 10% cap and whole-penny rounding.
 
-Each new game stores a random seed. Its three daily headlines are drawn without
-replacement from 30 templates (10 good, 10 bad, 10 neutral). News selection,
-numeric placeholders and prediction focus use separate deterministic streams,
-so reads, predictions, settlement and Reset agree. Company news affects that
-stock, technology news including Orion Cloud affects NOVA, and general market
-news affects all three stocks. Neutral headlines retain their small signed
-impacts. Briefing copy and report takeaways follow the selected category.
+Each new game stores a random market seed. At creation and each Next Day, choose
+one random news template from the session's unused pool of 30 templates (10 good,
+10 bad, 10 neutral). Save the complete publication in GameSession.dailyNews and
+its template in newsHistory inside the same transaction as the day transition.
+The API, predictions, bots and settlement all read that saved publication.
+Opening the phone or reloading never rerolls it. Reset clears current publications
+and starts day one with a fresh market seed, retaining the session's news history.
+After all 30 templates are used, refill the pool while excluding the last three.
+Existing sessions keep their seeded news for days already reached; Next Day
+begins publishing random news without resetting their progress, excluding their
+old seeded trio from the initial unused pool. Numeric
+placeholders and prediction focus still use separate deterministic streams.
+Company news affects that stock, technology news including Orion Cloud affects
+NOVA, and general market news affects all three stocks. Neutral headlines retain
+their small signed impacts. Briefing copy and report takeaways follow the category.
 
 At settlement, lock the session and recheck the version/phase. Persist closing
 prices, one monthly savings-interest credit and a historical report snapshot in
@@ -80,8 +88,9 @@ in the same transaction as prices, interest and the player's report. Public
 reports omit these internal portfolios. Only the final day-three report exposes
 the top-ten ranking snapshot after the session reaches FINISHED.
 No database migration is needed. Sessions predating the feature reconstruct
-missing bot snapshots deterministically from their seed and price history.
-Reset removes the snapshots with the reports and reproduces the same scenario.
+missing bot snapshots from saved daily news, seed and price history, falling back
+to the legacy seeded headlines for older days without saved publications.
+Reset removes the snapshots with the reports and starts a new seeded scenario.
 
 `GET /api/games/:gameId/leaderboard` requires the owning token and reads a
 Repeatable Read snapshot. It ranks the player and bots by cash + savings + current
