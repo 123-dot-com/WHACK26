@@ -93,9 +93,12 @@ export function planBotDay(portfolios: BotPortfolio[], context: BotDayContext): 
     const strategy = strategies[bot.group];
     const random = seededRandom(context.seed, context.day, bot.id, "portfolio");
     const actions = bot.lastActions;
+    let savingsDepositedTodayPence = 0;
     const transfer = (amountPence: number, operation: "DEPOSIT" | "WITHDRAW") => {
       if (amountPence <= 0) return;
-      Object.assign(bot, calculateTransfer(bot.cashPence, bot.savingsPence, amountPence, operation, SAVINGS_LIMIT_PENCE));
+      Object.assign(bot, calculateTransfer(bot.cashPence, bot.savingsPence, amountPence, operation,
+        SAVINGS_LIMIT_PENCE, savingsDepositedTodayPence));
+      if (operation === "DEPOSIT") savingsDepositedTodayPence += amountPence;
       actions.push({ type: operation, amountPence });
     };
     const trade = (stock: BotStock, side: "BUY" | "SELL", quantity: number) => {
@@ -154,7 +157,7 @@ export function planBotDay(portfolios: BotPortfolio[], context: BotDayContext): 
     }
 
     const netWorth = bot.cashPence + bot.savingsPence + botStockValue(bot, stocks) - (bot.loan?.balancePence ?? 0);
-    const savingsTarget = Math.min(SAVINGS_LIMIT_PENCE, Math.floor(Math.max(0, netWorth) * strategy.savings));
+    const savingsTarget = Math.floor(Math.max(0, netWorth) * strategy.savings);
     if (buyStocks.length > 0 && bot.savingsPence > savingsTarget) transfer(bot.savingsPence - savingsTarget, "WITHDRAW");
     // Keep a cash reserve and fund savings from unborrowed money.
     const reserve = 50_000;
@@ -162,7 +165,7 @@ export function planBotDay(portfolios: BotPortfolio[], context: BotDayContext): 
       const budget = Math.floor(Math.max(0, bot.cashPence - reserve - savingsTarget + bot.savingsPence) * strategy.tradeFraction);
       trade(stock, "BUY", Math.min(Math.floor(budget / stock.pricePence), Math.floor(bot.cashPence / stock.pricePence)));
     }
-    transfer(Math.min(Math.max(0, savingsTarget - bot.savingsPence),
+    transfer(Math.min(SAVINGS_LIMIT_PENCE - savingsDepositedTodayPence, Math.max(0, savingsTarget - bot.savingsPence),
       Math.max(0, bot.cashPence - reserve - (bot.loan?.balancePence ?? 0))), "DEPOSIT");
     return bot;
   });

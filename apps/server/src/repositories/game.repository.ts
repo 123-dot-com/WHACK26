@@ -3,6 +3,7 @@ import type { Prisma } from "../generated/prisma/client.ts";
 
 export const gameStateInclude = {
   wallet: true,
+  bankTransactions: { select: { day: true, operation: true, amountPence: true } },
   holdings: { include: { stock: true } },
   prices: true,
   predictions: true,

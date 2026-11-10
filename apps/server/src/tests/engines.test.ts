@@ -18,21 +18,26 @@ describe("pure financial calculations", () => {
     expect(() => calculateTrade(1, 0, 2_147_483_647, { side: "BUY", quantity: 2_147_483_647 })).toThrow("limit");
   });
   it("conserves money in transfers and rounds monthly interest to a penny", () => {
-    expect(calculateTransfer(1_000_000, 0, 200_000, "DEPOSIT", 500_000)).toEqual({ cashPence: 800_000, savingsPence: 200_000 });
-    expect(calculateTransfer(800_000, 200_000, 50_000, "WITHDRAW", 500_000)).toEqual({ cashPence: 850_000, savingsPence: 150_000 });
+    expect(calculateTransfer(1_000_000, 0, 200_000, "DEPOSIT", 500_000, 0)).toEqual({ cashPence: 800_000, savingsPence: 200_000 });
+    expect(calculateTransfer(800_000, 200_000, 50_000, "WITHDRAW", 500_000, 200_000)).toEqual({ cashPence: 850_000, savingsPence: 150_000 });
     expect(calculateInterest(200_000, 200)).toBe(4000);
     expect(calculateInterest(0, 200)).toBe(0);
     expect(calculateInterest(25, 200)).toBe(1);
     expect(calculateInterest(24, 200)).toBe(0);
-    expect(() => calculateTransfer(0, 100, 101, "WITHDRAW", 500_000)).toThrow("Not enough");
+    expect(() => calculateTransfer(0, 100, 101, "WITHDRAW", 500_000, 0)).toThrow("Not enough");
   });
-  it("caps deposits while allowing interest above the limit and unrestricted withdrawals", () => {
-    expect(calculateTransfer(1_000_000, 0, 500_000, "DEPOSIT", 500_000).savingsPence).toBe(500_000);
-    expect(() => calculateTransfer(1_000_000, 499_999, 2, "DEPOSIT", 500_000)).toThrow("deposit limit");
+  it("caps total daily deposits independently of the savings balance and allows unrestricted withdrawals", () => {
+    expect(calculateTransfer(1_000_000, 0, 500_000, "DEPOSIT", 500_000, 0).savingsPence).toBe(500_000);
+    expect(calculateTransfer(500_000, 510_000, 500_000, "DEPOSIT", 500_000, 0))
+      .toEqual({ cashPence: 0, savingsPence: 1_010_000 });
+    expect(() => calculateTransfer(1_000_000, 499_999, 2, "DEPOSIT", 500_000, 499_999)).toThrow("deposit limit");
+    expect(() => calculateTransfer(1_000_000, 0, 1, "DEPOSIT", 500_000, 500_000)).toThrow("deposit limit");
     expect(calculateInterest(500_000, 200)).toBe(10_000);
     expect(calculateInterest(510_000, 200)).toBe(10_200);
-    expect(() => calculateTransfer(100, 510_000, 1, "DEPOSIT", 500_000)).toThrow("deposit limit");
-    expect(calculateTransfer(0, 510_000, 510_000, "WITHDRAW", 500_000)).toEqual({ cashPence: 510_000, savingsPence: 0 });
+    expect(calculateInterest(1_010_000, 200)).toBe(20_200);
+    expect(() => calculateTransfer(100, 510_000, 1, "DEPOSIT", 500_000, 500_000)).toThrow("deposit limit");
+    expect(() => calculateTransfer(0, 510_000, 1, "DEPOSIT", 500_000, 0)).toThrow("Not enough");
+    expect(calculateTransfer(0, 510_000, 510_000, "WITHDRAW", 500_000, 500_000)).toEqual({ cashPence: 510_000, savingsPence: 0 });
   });
 });
 

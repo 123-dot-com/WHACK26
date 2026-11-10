@@ -150,7 +150,7 @@ Two accounts:
 **Proposed MVP rules:**
 - Starting Current balance £10,000; Savings £0.
 - One Savings product: **2% per month**, `monthlyInterestBps = 200`, as requested for the game.
-- Deposits may bring the current Savings balance up to **£5,000** (`savingsDepositLimitPence = 500000`). Interest may take the balance above this limit; further deposits require room below it.
+- Total deposits are capped at **£5,000 per game day** (`savingsDepositLimitPence = 500000`). The allowance resets each day; unused allowance does not carry over, and withdrawals do not restore it. Previous deposits and interest remain in Savings without reducing the next day's allowance.
 - **1 game day = 1 month**, so players can see interest during the short demo.
 - Unlimited Deposit/Withdraw actions before End Day; no fees or lock period.
 - Compound interest is calculated on the **Savings balance at the moment the day closes**.
@@ -287,7 +287,8 @@ interface GameStateDTO {
     cashPence: number;
     savingsPence: number;
     monthlyInterestBps: number;  // 200 = 2% per month
-    savingsDepositLimitPence: number;  // 500000 = £5,000
+    savingsDepositLimitPence: number;  // 500000 = £5,000 per game day
+    savingsDepositedTodayPence: number;  // Sum of today's DEPOSIT transactions
   };
   stocks: Array<{
     id: StockId;
@@ -385,7 +386,8 @@ Add database-level `CHECK` constraints (via SQL migrations) for non-negative bal
     "cashPence": 1000000,
     "savingsPence": 0,
     "monthlyInterestBps": 200,
-    "savingsDepositLimitPence": 500000
+    "savingsDepositLimitPence": 500000,
+    "savingsDepositedTodayPence": 0
   },
   "holdings": { "NOVA": 0, "GREEN": 0, "FINX": 0 }
 }
@@ -954,7 +956,7 @@ bullish/
 
 - 3 days, 3 fictional stocks, £10,000 starting cash.
 - 100 agents across 6 behavior groups.
-- Bank: one Savings Account, 2% monthly interest, £5,000 deposit limit, 1 game day = 1 month. Interest can exceed the deposit limit.
+- Bank: one Savings Account, 2% monthly interest, £5,000 daily deposit limit, 1 game day = 1 month. The full balance, including prior deposits and interest, compounds at each day close.
 - Arbitrage: one puzzle and attempt per day, instant profit/loss settlement.
 - Modular monolith, monorepo, shared TypeScript contracts.
 - Seeded scenarios and Reset for a reliable demo.

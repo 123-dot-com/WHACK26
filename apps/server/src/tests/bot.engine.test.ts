@@ -61,7 +61,7 @@ describe("bot finances", () => {
           }
           expect(wealth(bot)).toBe(before[index] + netIncome);
           const deposits = planned[index].lastActions.filter((action) => action.type === "DEPOSIT");
-          if (deposits.length > 0) expect(planned[index].savingsPence).toBeLessThanOrEqual(500_000);
+          expect(deposits.reduce((sum, action) => sum + action.amountPence, 0)).toBeLessThanOrEqual(500_000);
         });
       }
     }
@@ -72,7 +72,7 @@ describe("bot finances", () => {
 
   it("compounds savings above the deposit cap and charges overdue debt without creating cash", () => {
     const saver = createBotPortfolios().find((bot) => bot.group === "PESSIMIST")!;
-    saver.cashPence = 490_000;
+    saver.cashPence = 0;
     saver.savingsPence = 510_000;
     const poor = createBotPortfolios().find((bot) => bot.group === "FOMO")!;
     poor.cashPence = 0;
@@ -86,6 +86,17 @@ describe("bot finances", () => {
       loan: { balancePence: 110_250, lastAccruedDay: 2 } });
     expect(closed[1].lastActions).toContainEqual({ type: "LOAN_PENALTY", amountPence: 5250 });
     expect(wealth(closed[1])).toBe(-110_250);
+  });
+
+  it("lets bots deposit up to the daily limit on top of existing savings and compound the full balance", () => {
+    const saver = createBotPortfolios().find((bot) => bot.group === "PESSIMIST")!;
+    saver.cashPence = 2_000_000;
+    saver.savingsPence = 510_000;
+    const planned = planBotDay([saver], { seed: 2, day: 2, stocks,
+      news: { ...news, day: 2, category: "BAD", impact: -1 } });
+    expect(planned[0].lastActions).toContainEqual({ type: "DEPOSIT", amountPence: 500_000 });
+    expect(planned[0].savingsPence).toBe(1_010_000);
+    expect(closeBotDay(planned, 2)[0].savingsPence).toBe(1_030_200);
   });
 });
 

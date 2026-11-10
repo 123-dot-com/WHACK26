@@ -174,10 +174,12 @@ session and local day-cycle state, then returns to the first morning in bed.
 ## Monthly Savings
 
 The wallet exposes `monthlyInterestBps = 200` and
-`savingsDepositLimitPence = 500000`. Each End Day credits rounded monthly interest
-once on the full balance. The locked deposit transaction rejects a balance that
-would exceed the deposit limit; withdrawals are unaffected. Interest may exceed
-the limit and compounds on subsequent days. The migration preserves balances and
+`savingsDepositLimitPence = 500000` per game day. `savingsDepositedTodayPence` is
+derived from that day's DEPOSIT transactions, including for existing sessions.
+The locked deposit transaction rejects deposits that would bring the day's total
+above the limit. Withdrawals do not restore the allowance, and unused allowance
+does not carry over. Each End Day credits rounded monthly interest once on the
+full balance, including previous deposits and interest. The migration preserves balances and
 historical reports, updates the terms and increments existing session versions so
 old in-flight writes become stale. Old idempotency records remain intact.
 

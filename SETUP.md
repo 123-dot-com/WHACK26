@@ -216,10 +216,11 @@ at night preserves that closed day. Reports can be viewed without advancing;
 there are no other End Day/Next Day controls. Waking after the third night shows
 the final report. The large room instruction panel has been removed.
 
-Savings now pays 2% per game month with a £5,000 deposit limit. The backend
+Savings now pays 2% per game month with a £5,000 deposit limit per game day. The backend
 checks the limit under the session lock and returns 422 SAVINGS_LIMIT_EXCEEDED
-for an over-limit deposit. Interest may exceed the limit and continues to
-compound on the full balance. A £2,000 balance earns £40 at close. Apply the
+for an over-limit deposit. Each new day grants a fresh £5,000 allowance; previous
+deposits and interest do not reduce it. Withdrawals do not restore the daily
+allowance. Interest compounds on the full balance. A £2,000 balance earns £40 at close. Apply the
 monthly-savings migration with `npm run db:deploy` on existing local databases.
 Existing balances and historical reports are retained; new terms also advance
 the session version to invalidate stale writes.

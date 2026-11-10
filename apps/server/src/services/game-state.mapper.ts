@@ -3,6 +3,7 @@ import { LOAN_DAILY_INTEREST_BPS, LOAN_MAX_PENCE } from "@bullish/shared";
 import { repaymentQuote } from "../engines/loan.engine.ts";
 import type { GameData } from "../repositories/game.repository.ts";
 import { DAILY_STALL_COUNT } from "../engines/arbitrage.engine.ts";
+import { calculateDepositedToday } from "../engines/bank.engine.ts";
 
 export function toPublicReport(value: unknown, showFinalRanking: boolean): DailyReportDTO {
     const { botPortfolios: _bots, leaderboard, ...report } = value as DailyReportDTO & { botPortfolios?: unknown };
@@ -71,6 +72,7 @@ export function toGameState(game: GameData): GameStateDTO {
             savingsPence: wallet.savingsPence,
             monthlyInterestBps: wallet.monthlyInterestBps,
             savingsDepositLimitPence: wallet.savingsDepositLimitPence,
+            savingsDepositedTodayPence: calculateDepositedToday(game.bankTransactions, game.day),
         },
         stocks,
         prediction,

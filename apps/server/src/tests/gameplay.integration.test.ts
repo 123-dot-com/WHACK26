@@ -274,9 +274,10 @@ describe("financial APIs with real PostgreSQL", () => {
 });
 
 describe("three-day progression and reports", () => {
-  it("persists monthly terms, rejects over-limit deposits and compounds above the cap", async () => {
+  it("renews the daily deposit allowance while compounding all existing savings", async () => {
     const g = await game();
-    expect(g.current().wallet).toMatchObject({ monthlyInterestBps: 200, savingsDepositLimitPence: 500_000 });
+    expect(g.current().wallet).toMatchObject({ monthlyInterestBps: 200, savingsDepositLimitPence: 500_000,
+      savingsDepositedTodayPence: 0 });
     expect(g.current().wallet).not.toHaveProperty("annualInterestBps");
     state(await g.send("bank/deposit", { amountPence: 500_000 }));
     const full = await g.load();
@@ -286,23 +287,76 @@ describe("three-day progression and reports", () => {
     const closed = state(await g.send("end-day"));
     expect(closed.wallet.savingsPence).toBe(510_000);
     expect(closed.reports[0].interestPence).toBe(10_000);
-    state(await g.send("next-day")); state(await g.send("open-market"));
-    expect(await g.send("bank/deposit", { amountPence: 1 })).toMatchObject({ status: 422 });
+    const next = state(await g.send("next-day"));
+    expect(next.wallet).toMatchObject({ savingsPence: 510_000, savingsDepositedTodayPence: 0 });
+    state(await g.send("open-market"));
+    const deposited = state(await g.send("bank/deposit", { amountPence: 500_000 }));
+    expect(deposited.wallet).toMatchObject({ cashPence: 0, savingsPence: 1_010_000,
+      savingsDepositedTodayPence: 500_000 });
+    expect(await g.load()).toEqual(deposited);
+    expect(await g.send("bank/deposit", { amountPence: 1 })).toMatchObject({ status: 422,
+      body: { error: { code: "SAVINGS_LIMIT_EXCEEDED" } } });
     state(await g.send("prediction", { direction: "BULLISH" }));
     const compounded = state(await g.send("end-day"));
-    expect(compounded.wallet.savingsPence).toBe(520_200);
-    expect(compounded.reports[1].interestPence).toBe(10_200);
+    expect(compounded.wallet.savingsPence).toBe(1_030_200);
+    expect(compounded.reports[1].interestPence).toBe(20_200);
+    state(await g.send("next-day"));
+    expect(g.current().wallet).toMatchObject({ savingsPence: 1_030_200, savingsDepositedTodayPence: 0 });
+    state(await g.send("open-market"));
+    state(await g.send("prediction", { direction: "BULLISH" }));
+    const finished = state(await g.send("end-day"));
+    expect(finished.wallet.savingsPence).toBe(1_050_804);
+    expect(finished.reports[2].interestPence).toBe(20_604);
     state(await g.send("reset"));
-    expect(g.current().wallet).toMatchObject({ monthlyInterestBps: 200, savingsDepositLimitPence: 500_000, savingsPence: 0 });
+    expect(g.current().wallet).toMatchObject({ monthlyInterestBps: 200, savingsDepositLimitPence: 500_000,
+      savingsPence: 0, savingsDepositedTodayPence: 0 });
+    state(await g.send("open-market"));
+    expect(state(await g.send("bank/deposit", { amountPence: 500_000 })).wallet.savingsDepositedTodayPence).toBe(500_000);
   });
-  it("serializes competing deposits at the cap without exceeding the limit", async () => {
+  it("sums daily deposits without restoring the allowance after a withdrawal or counting retries twice", async () => {
     const g = await game();
+    const input = { amountPence: 200_000, expectedVersion: g.current().version }, key = randomUUID();
+    const first = state(await request(`/${g.id}/bank/deposit`, input, g.token, key));
+    expect(state(await request(`/${g.id}/bank/deposit`, input, g.token, key))).toEqual(first);
+    const second = state(await request(`/${g.id}/bank/deposit`, { amountPence: 300_000,
+      expectedVersion: first.version }, g.token, randomUUID()));
+    expect(second.wallet.savingsDepositedTodayPence).toBe(500_000);
+    const withdrawn = state(await request(`/${g.id}/bank/withdraw`, { amountPence: 500_000,
+      expectedVersion: second.version }, g.token, randomUUID()));
+    expect(withdrawn.wallet).toMatchObject({ savingsPence: 0, savingsDepositedTodayPence: 500_000 });
+    expect(await request(`/${g.id}/bank/deposit`, { amountPence: 1, expectedVersion: withdrawn.version }, g.token, randomUUID()))
+      .toMatchObject({ status: 422, body: { error: { code: "SAVINGS_LIMIT_EXCEEDED" } } });
+    expect(await g.load()).toEqual(withdrawn);
+    expect((await game()).current().wallet.savingsDepositedTodayPence).toBe(0);
+  });
+  it("does not carry unused deposit allowance into the next day", async () => {
+    const g = await game();
+    state(await g.send("bank/deposit", { amountPence: 100_000 }));
+    state(await g.send("prediction", { direction: "BULLISH" }));
+    state(await g.send("end-day"));
+    state(await g.send("next-day"));
+    state(await g.send("open-market"));
+    expect(await g.send("bank/deposit", { amountPence: 500_001 })).toMatchObject({ status: 422,
+      body: { error: { code: "SAVINGS_LIMIT_EXCEEDED" } } });
+    const deposited = state(await g.send("bank/deposit", { amountPence: 500_000 }));
+    expect(deposited.wallet).toMatchObject({ savingsPence: 602_000, savingsDepositedTodayPence: 500_000 });
+  });
+  it.each([1, 2])("serializes competing deposits at the daily cap on day %i", async (day) => {
+    const g = await game();
+    if (day === 2) {
+      state(await g.send("bank/deposit", { amountPence: 500_000 }));
+      state(await g.send("prediction", { direction: "BULLISH" }));
+      state(await g.send("end-day"));
+      state(await g.send("next-day"));
+      state(await g.send("open-market"));
+    }
     state(await g.send("bank/deposit", { amountPence: 400_000 }));
     const payload = { amountPence: 100_000, expectedVersion: g.current().version };
     const results = await Promise.all([request(`/${g.id}/bank/deposit`, payload, g.token, randomUUID()), request(`/${g.id}/bank/deposit`, payload, g.token, randomUUID())]);
     expect(results.map((item) => item.status).sort()).toEqual([200, 409]);
     const loaded = await g.load();
-    expect(loaded.wallet.savingsPence).toBe(500_000);
+    expect(loaded.wallet.savingsPence).toBe(day === 1 ? 500_000 : 1_010_000);
+    expect(loaded.wallet.savingsDepositedTodayPence).toBe(500_000);
     expect(await request(`/${g.id}/bank/deposit`, { amountPence: 1, expectedVersion: loaded.version }, g.token, randomUUID()))
       .toMatchObject({ status: 422, body: { error: { code: "SAVINGS_LIMIT_EXCEEDED" } } });
   });
